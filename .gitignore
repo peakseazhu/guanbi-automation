@@ -12,3 +12,7 @@ logger/
 记录/
 src/
 *.xlsx
+
+# Local one-off machine repair artifacts
+docs/archive/sessions/*hosts-backup*.txt
+tools/fix_github_hosts.ps1
