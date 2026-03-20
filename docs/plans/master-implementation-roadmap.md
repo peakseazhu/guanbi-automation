@@ -5,6 +5,8 @@
 > 当前执行明细：
 > - `docs/plans/2026-03-19-from-scratch-guanbi-automation-implementation-plan.md`
 > - `docs/plans/2026-03-19-runtime-contract-implementation-plan.md`
+> - `docs/plans/2026-03-20-extract-runtime-policy-design.md`
+> - `docs/plans/2026-03-20-extract-runtime-policy-implementation-plan.md`
 
 ## 1. 实施总原则
 
@@ -110,7 +112,8 @@
 - preflight service
 - pipeline engine
 - extract stage
-- 任务轮询预算模型
+- extract runtime profile（`fast / standard / heavy`）
+- `submit / poll / download` 分段预算与 extract 总时限
 - 超时 / SSL / 连接错误分类与重试策略
 - batch 级归档
 - 失败态 manifest
@@ -122,6 +125,7 @@
 - 多 job 同批次 extract-only 可运行
 - 失败运行也能留下可诊断归档
 - 轮询不会因无限等待或无分类异常而卡死
+- 慢任务可通过更重的 runtime profile 放宽预算，而不必放宽全部 extract
 
 ## 7. Phase 5：本地 Web 控制台
 

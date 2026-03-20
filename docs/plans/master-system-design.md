@@ -568,6 +568,23 @@ runs/
 2. `extract runtime policy`
 3. `workbook detailed design`
 
+### 10.4.1 Extract Runtime Policy
+
+在 `runtime contract` 基线完成后，extract 阶段的运行政策继续细化为：
+
+- `submit / poll / download` 三段分离预算
+- extract 级 `total_deadline`
+- `fast / standard / heavy` 三档 runtime profile
+- `extract template` 默认档位 + `run batch` 运行时 override
+
+当前默认档位为 `standard`，而不是 `fast`。原因是历史日志已经证明部分真实任务会出现接近 `100s` 的正常轮询等待，不能把所有任务都当成轻量查询。
+
+同时明确：
+
+- 正常 `PROCESSING` 轮询不消耗错误重试预算
+- 只有瞬时网络错误才消耗有限重试
+- extract manifest 必须记录实际生效 profile 以及 `submit / poll / download` 分段运行证据
+
 ## 11. 错误处理与可观测性
 
 新系统必须把 legacy 日志里暴露出的真实失败模式显式工程化：

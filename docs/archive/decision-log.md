@@ -110,3 +110,14 @@
   - extract-only 里程碑在真正实现前，必须先有最小稳定运行契约。
   - workbook 设计以后不再独立定义自己的错误语义和日志字段。
   - 当前规划与后续实施计划都要把 runtime contract 作为 workbook 之前的正式前置阶段。
+
+## ADR-2026-03-20-12：Extract Runtime Policy 采用分段预算与三档运行配置
+
+- Status：Accepted
+- Context：runtime contract 已完成最小实现，但旧日志继续证明 extract 运行时间分布差异很大。`logger/log_15202603_1005.txt` 出现最长 `99s` 轮询等待，`logger/log_12202603_0850.txt` 和 `logger/log_17202601_0818.txt` 也分别出现 `72s`、`71s`；同时 `logger/log_21202601_0818.txt`、`logger/log_21202601_1356.txt`、`logger/log_07202603_0850.txt` 还出现 `66 x 219336`、`70 x 215501` 等大表样本。若继续使用单一 extract polling 预算，要么误杀重任务，要么把轻任务全部放宽。
+- Decision：extract runtime policy 采用 `submit / poll / download` 三段分离预算，并在外层增加 extract 总时限；同时引入 `fast / standard / heavy` 三档 runtime profile。profile 由 `extract template` 提供默认值，`run batch` 可做运行时 override，默认档位为 `standard`。
+- Consequences：
+  - bootstrap settings 必须从单一 `extract_polling` 升级为 profile-aware 结构。
+  - manifest 必须记录模板默认 profile、实际生效 profile 与三段运行证据。
+  - `PROCESSING` 等正常轮询状态不消耗错误重试预算；只有瞬时网络错误才进入有限重试。
+  - 后续调参优先围绕 profile，而不是在各处散落修改 timeout 数字。
