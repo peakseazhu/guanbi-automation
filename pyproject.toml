@@ -1,0 +1,23 @@
+[project]
+name = "guanbi-automation"
+version = "0.1.0"
+description = "From-scratch Guanbi BI automation suite."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.28,<1",
+    "pydantic>=2,<3",
+    "PyYAML>=6,<7",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8,<9",
+]
+
+[build-system]
+requires = ["setuptools>=80", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

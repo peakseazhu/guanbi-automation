@@ -1,0 +1,6 @@
+dotenv
+requests
+lark_oapi
+xlwings
+openpyxl
+python-dateutil

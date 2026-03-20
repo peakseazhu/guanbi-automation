@@ -1,0 +1,14 @@
+.env
+.venv/
+.packages/
+.pytest_cache/
+.uv-cache/
+.vscode/
+__pycache__/
+*.pyc
+
+# Local reference-only evidence, not for the public repo
+logger/
+记录/
+src/
+*.xlsx
