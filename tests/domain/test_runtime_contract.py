@@ -1,6 +1,7 @@
 from pydantic import ValidationError
 
 from guanbi_automation.domain.runtime_contract import (
+    ExtractRuntimePolicy,
     EventRecord,
     PollingPolicy,
     RetryBudget,
@@ -100,3 +101,30 @@ def test_event_record_defaults_attempt_and_timestamp():
 
     assert event.attempt == 0
     assert event.timestamp.tzinfo is not None
+
+
+def test_extract_runtime_policy_requires_submit_poll_download_and_deadline():
+    policy = ExtractRuntimePolicy.model_validate(
+        {
+            "profile_name": "standard",
+            "submit": {
+                "connect_timeout": 3.0,
+                "read_timeout": 10.0,
+                "max_retries": 1,
+            },
+            "poll": {
+                "poll_interval": 2.0,
+                "max_wait": 150.0,
+                "transient_error_retries": 2,
+                "backoff_policy": "fixed",
+            },
+            "download": {
+                "connect_timeout": 5.0,
+                "read_timeout": 30.0,
+                "max_retries": 1,
+            },
+            "total_deadline_seconds": 210.0,
+        }
+    )
+
+    assert policy.profile_name == "standard"

@@ -56,6 +56,36 @@ def test_poll_with_policy_returns_stable_error_after_retries_exhausted():
     assert result.error.code == RuntimeErrorCode.NETWORK_CONNECT_TIMEOUT
 
 
+def test_processing_status_waits_without_consuming_error_retry_budget():
+    payloads = iter(
+        [
+            {"task_status": "processing"},
+            {"task_status": "processing"},
+            {"task_status": "done", "download_token": "file-001"},
+        ]
+    )
+
+    result = poll_with_policy(
+        fetch_status=lambda: next(payloads),
+        policy=_build_policy(max_wait=30.0, max_retries=1),
+        sleep=lambda _seconds: None,
+    )
+
+    assert result.completed is True
+    assert result.attempts == 3
+
+
+def test_processing_status_times_out_after_poll_budget_is_exhausted():
+    result = poll_with_policy(
+        fetch_status=lambda: {"task_status": "processing"},
+        policy=_build_policy(max_wait=4.0, max_retries=1),
+        sleep=lambda _seconds: None,
+    )
+
+    assert result.completed is False
+    assert result.error.code == RuntimeErrorCode.POLL_TIMEOUT
+
+
 def _build_policy(
     *,
     backoff_policy: str = "fixed",

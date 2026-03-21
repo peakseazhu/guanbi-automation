@@ -11,6 +11,7 @@ RetryablePollError = Literal[
     RuntimeErrorCode.NETWORK_CONNECT_TIMEOUT,
     RuntimeErrorCode.NETWORK_SSL_ERROR,
 ]
+PollTaskStatus = Literal["processing", "done"]
 
 _RETRYABLE_ERRORS: frozenset[RuntimeErrorCode] = frozenset(
     {
@@ -42,6 +43,21 @@ def should_retry_poll_error(error_code: RuntimeErrorCode | str) -> bool:
     return classify_poll_error(error_code) in _RETRYABLE_ERRORS
 
 
+def classify_poll_status(payload: object) -> PollTaskStatus:
+    if not isinstance(payload, dict):
+        raise ValueError("Polling payload must be a dictionary")
+
+    raw_status = payload.get("task_status")
+    if not isinstance(raw_status, str):
+        raise ValueError("Polling payload is missing task_status")
+
+    normalized = raw_status.strip().lower()
+    if normalized in {"processing", "done"}:
+        return normalized
+
+    raise ValueError(f"Unsupported task_status: {raw_status}")
+
+
 def compute_next_wait_interval(
     policy: PollingPolicy,
     *,
@@ -59,6 +75,15 @@ def compute_next_wait_interval(
 
     remaining = policy.timeout_budget.max_wait - elapsed_seconds
     return max(0.0, min(wait_seconds, remaining))
+
+
+def compute_processing_wait_interval(
+    policy: PollingPolicy,
+    *,
+    elapsed_seconds: float,
+) -> float:
+    remaining = policy.timeout_budget.max_wait - elapsed_seconds
+    return max(0.0, min(policy.timeout_budget.poll_interval, remaining))
 
 
 def should_continue_polling(

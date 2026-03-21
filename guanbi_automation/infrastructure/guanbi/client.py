@@ -6,7 +6,9 @@ from typing import Any, Callable
 from guanbi_automation.domain.runtime_contract import PollingPolicy, RuntimeErrorInfo
 from guanbi_automation.domain.runtime_errors import RuntimeErrorCode
 from guanbi_automation.infrastructure.guanbi.polling import (
+    classify_poll_status,
     classify_poll_error,
+    compute_processing_wait_interval,
     compute_next_wait_interval,
     should_continue_polling,
     should_retry_poll_error,
@@ -95,9 +97,55 @@ def poll_with_policy(
             continue
 
         attempts += 1
-        return PollResult(
-            completed=True,
-            attempts=attempts,
-            total_wait_seconds=elapsed_seconds,
-            payload=payload,
+        try:
+            task_status = classify_poll_status(payload)
+        except ValueError as exc:
+            return PollResult(
+                completed=False,
+                attempts=attempts,
+                total_wait_seconds=elapsed_seconds,
+                error=RuntimeErrorInfo(
+                    code=RuntimeErrorCode.PAYLOAD_PARSE_ERROR,
+                    message=str(exc),
+                    retryable=False,
+                ),
+            )
+
+        if task_status == "done":
+            return PollResult(
+                completed=True,
+                attempts=attempts,
+                total_wait_seconds=elapsed_seconds,
+                payload=payload,
+            )
+
+        if elapsed_seconds >= policy.timeout_budget.max_wait:
+            return PollResult(
+                completed=False,
+                attempts=attempts,
+                total_wait_seconds=elapsed_seconds,
+                error=RuntimeErrorInfo(
+                    code=RuntimeErrorCode.POLL_TIMEOUT,
+                    message="Polling budget exhausted",
+                    retryable=False,
+                ),
+            )
+
+        wait_seconds = compute_processing_wait_interval(
+            policy,
+            elapsed_seconds=elapsed_seconds,
         )
+        if wait_seconds <= 0:
+            return PollResult(
+                completed=False,
+                attempts=attempts,
+                total_wait_seconds=elapsed_seconds,
+                error=RuntimeErrorInfo(
+                    code=RuntimeErrorCode.POLL_TIMEOUT,
+                    message="Polling budget exhausted before next status check",
+                    retryable=False,
+                ),
+            )
+
+        sleep(wait_seconds)
+        elapsed_seconds += wait_seconds
