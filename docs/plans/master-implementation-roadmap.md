@@ -9,6 +9,8 @@
 > - `docs/plans/2026-03-20-extract-runtime-policy-implementation-plan.md`
 > - `docs/plans/2026-03-21-workbook-detailed-design.md`
 > - `docs/plans/2026-03-21-workbook-stage-implementation-plan.md`
+> - `docs/plans/2026-03-21-publish-stage-detailed-design.md`
+> - `docs/plans/2026-03-21-publish-stage-implementation-plan.md`
 
 ## 1. 实施总原则
 
@@ -178,8 +180,11 @@
 **关键交付物**
 
 - Feishu adapter
+- publish mapping contract
+- publish dataset 标准层
 - publish stage
 - 批量写入器
+- mapping 级 manifest
 - 发布摘要归档
 
 **退出条件**
@@ -232,6 +237,7 @@
 - 把任务轮询继续写成无限循环，缺少超时预算、错误分类和重试边界。
 - 把 workbook 大表直接交给 Excel COM 批量写入，没有尺寸护栏和回退策略。
 - 在 runtime contract 未锁定前就提前展开 workbook 细节设计，导致阶段护栏、日志字段和错误语义后续返工。
+- 把追加式 publish 当成天然幂等操作，导致日更报表重复追加。
 
 ## 13. 文档更新规则
 
@@ -250,10 +256,12 @@
 2. `extract runtime policy` 已按 `docs/plans/2026-03-20-extract-runtime-policy-implementation-plan.md` 完成 Task 1-7，并通过全量测试验证。
 3. `workbook detailed design` 已完成，并已写回主文档、决策日志与会话归档。
 4. `docs/plans/2026-03-21-workbook-stage-implementation-plan.md` 已完成，并通过 focused verification 与 full suite 验证。
-5. 当前下一恢复点前移为：
-   - `publish stage detailed design`
-   - 具体先收敛 `workbook output -> publish mapping contract`
-6. 在进入下一阶段时，仍然不允许：
+5. `publish stage detailed design` 已完成，并已写回主文档、决策日志与会话归档。
+6. `docs/plans/2026-03-21-publish-stage-implementation-plan.md` 已创建。
+7. 当前下一恢复点前移为：
+   - 按 `docs/plans/2026-03-21-publish-stage-implementation-plan.md`
+   - 从 Task 1 开始按 TDD 执行
+8. 在进入下一阶段时，仍然不允许：
    - 回到 legacy `src/`
    - 把 extract runtime policy 退回单一 `extract_polling`
-   - 跳过下一阶段设计，直接发散 publish 编码
+   - 跳过 publish implementation plan，直接发散 publish 编码
