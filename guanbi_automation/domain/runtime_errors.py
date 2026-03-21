@@ -25,3 +25,8 @@ class RuntimeErrorCode(StrEnum):
     WORKBOOK_OUTPUT_READ_ERROR = "workbook_output_read_error"
     PUBLISH_AUTH_ERROR = "publish_auth_error"
     PUBLISH_RATE_LIMIT_ERROR = "publish_rate_limit_error"
+    PUBLISH_TARGET_MISSING = "publish_target_missing"
+    PUBLISH_RANGE_INVALID = "publish_range_invalid"
+    PUBLISH_SOURCE_READ_ERROR = "publish_source_read_error"
+    PUBLISH_WRITE_ERROR = "publish_write_error"
+    PUBLISH_APPEND_RERUN_BLOCKED = "publish_append_rerun_blocked"
