@@ -1,5 +1,9 @@
 # Extract Runtime Policy Implementation Plan
 
+> 状态：Completed
+> 完成日期：2026-03-21
+> 验证结果：`pytest tests -v -p no:cacheprovider` -> `34 passed`
+
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** 在现有 runtime contract 基线之上，为 extract 主链路落地 profile-aware 的 `submit / poll / download` 分段运行策略、阶段级证据记录与稳定错误归因。

@@ -1,7 +1,7 @@
 # 观远 BI 自动化套件主实施路线图
 
 > 状态：Active
-> 最近更新：2026-03-19
+> 最近更新：2026-03-21
 > 当前执行明细：
 > - `docs/plans/2026-03-19-from-scratch-guanbi-automation-implementation-plan.md`
 > - `docs/plans/2026-03-19-runtime-contract-implementation-plan.md`
@@ -241,10 +241,13 @@
 
 ## 14. 当前恢复点
 
-截至 2026-03-19，当前执行入口已经收敛为：
+截至 2026-03-21，当前执行状态已经更新为：
 
-1. 先按 `docs/plans/2026-03-19-runtime-contract-and-stage-gating-design.md` 继续收敛运行契约边界
-2. 再按 `docs/plans/2026-03-19-runtime-contract-implementation-plan.md` 从 Task 1 开始落地
-3. 运行契约稳定后，再进入 workbook detailed design
-
-当前不建议跳过 runtime contract 直接进入 workbook 实现或 workbook 细化编码。
+1. `runtime contract` 已完成并通过全量测试验证。
+2. `extract runtime policy` 已按 `docs/plans/2026-03-20-extract-runtime-policy-implementation-plan.md` 完成 Task 1-7，并通过全量测试验证。
+3. 当前下一恢复点前移为：
+   - `workbook detailed design`
+4. 在进入 workbook 实现前，仍然不允许：
+   - 回到 legacy `src/`
+   - 把 extract runtime policy 退回单一 `extract_polling`
+   - 跳过 workbook detailed design 直接展开 workbook 编码
