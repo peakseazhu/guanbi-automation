@@ -1,3 +1,5 @@
+import pytest
+
 from guanbi_automation.domain.publish_contract import PublishDataset, PublishTargetSpec
 from guanbi_automation.infrastructure.feishu.target_planner import (
     chunk_publish_rows,
@@ -118,3 +120,45 @@ def test_chunk_publish_rows_splits_dataset_by_row_limit():
         [["a", 1], ["b", 2]],
         [["c", 3]],
     ]
+
+def test_replace_range_rejects_explicit_bounds_smaller_than_dataset_shape():
+    dataset = PublishDataset(
+        rows=[["x", 1], ["y", 2]],
+        row_count=2,
+        column_count=2,
+        source_range="计算表5!A2:B3",
+    )
+    target = PublishTargetSpec(
+        spreadsheet_token="sheet-token",
+        sheet_id="sub-sheet-5",
+        write_mode="replace_range",
+        start_row=3,
+        start_col=2,
+        end_row=3,
+        end_col=2,
+    )
+
+    with pytest.raises(ValueError, match="dataset shape does not fit"):
+        resolve_replace_range(target=target, dataset=dataset, sheet_title="子表5")
+
+
+def test_replace_range_rejects_end_bounds_before_start():
+    dataset = PublishDataset(
+        rows=[["x"]],
+        row_count=1,
+        column_count=1,
+        source_range="计算表6!A2:A2",
+    )
+    target = PublishTargetSpec(
+        spreadsheet_token="sheet-token",
+        sheet_id="sub-sheet-6",
+        write_mode="replace_range",
+        start_row=4,
+        start_col=3,
+        end_row=3,
+        end_col=2,
+    )
+
+    with pytest.raises(ValueError, match="must not precede start"):
+        resolve_replace_range(target=target, dataset=dataset, sheet_title="子表6")
+
