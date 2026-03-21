@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -48,3 +49,13 @@ class PublishTargetSpec(BaseModel):
         if self.write_mode == "append_rows" and not self.append_locator_columns:
             raise ValueError("append_rows targets must declare append_locator_columns")
         return self
+
+
+@dataclass(frozen=True)
+class PublishDataset:
+    """Normalized publish-source rows extracted from a workbook result area."""
+
+    rows: list[list[object]]
+    row_count: int
+    column_count: int
+    source_range: str
