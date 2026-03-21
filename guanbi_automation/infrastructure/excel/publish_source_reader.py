@@ -10,21 +10,31 @@ from guanbi_automation.infrastructure.excel.block_locator import trim_trailing_e
 
 def read_publish_source(workbook_path: Path, source: PublishSourceSpec) -> PublishDataset:
     workbook = load_workbook(workbook_path, data_only=True)
-    sheet = workbook[source.sheet_name]
-    rows = _read_bounded_rows(sheet=sheet, source=source)
+    try:
+        sheet = workbook[source.sheet_name]
+        rows = _read_bounded_rows(sheet=sheet, source=source)
+        start_row = source.start_row
 
-    if source.header_mode == "exclude" and rows:
-        rows = rows[1:]
+        if source.header_mode == "exclude" and rows:
+            rows = rows[1:]
+            start_row += 1
 
-    trimmed_rows = trim_trailing_empty_edges(rows)
-    row_count = len(trimmed_rows)
-    column_count = max((len(row) for row in trimmed_rows), default=0)
-    return PublishDataset(
-        rows=trimmed_rows,
-        row_count=row_count,
-        column_count=column_count,
-        source_range=_format_source_range(source=source, rows=trimmed_rows),
-    )
+        trimmed_rows = trim_trailing_empty_edges(rows)
+        row_count = len(trimmed_rows)
+        column_count = max((len(row) for row in trimmed_rows), default=0)
+        return PublishDataset(
+            rows=trimmed_rows,
+            row_count=row_count,
+            column_count=column_count,
+            source_range=_format_source_range(
+                sheet_name=source.sheet_name,
+                start_row=start_row,
+                start_col=source.start_col,
+                rows=trimmed_rows,
+            ),
+        )
+    finally:
+        workbook.close()
 
 
 def _read_bounded_rows(*, sheet: object, source: PublishSourceSpec) -> list[list[object]]:
@@ -41,19 +51,25 @@ def _read_bounded_rows(*, sheet: object, source: PublishSourceSpec) -> list[list
     return trim_trailing_empty_edges(rows)
 
 
-def _format_source_range(*, source: PublishSourceSpec, rows: list[list[object]]) -> str:
+def _format_source_range(
+    *,
+    sheet_name: str,
+    start_row: int,
+    start_col: int,
+    rows: list[list[object]],
+) -> str:
     if not rows:
         return (
-            f"{source.sheet_name}!"
-            f"{_column_label(source.start_col)}{source.start_row}:"
-            f"{_column_label(source.start_col)}{source.start_row}"
+            f"{sheet_name}!"
+            f"{_column_label(start_col)}{start_row}:"
+            f"{_column_label(start_col)}{start_row}"
         )
 
-    end_row = source.start_row + len(rows) - 1
-    end_col = source.start_col + max((len(row) for row in rows), default=1) - 1
+    end_row = start_row + len(rows) - 1
+    end_col = start_col + max((len(row) for row in rows), default=1) - 1
     return (
-        f"{source.sheet_name}!"
-        f"{_column_label(source.start_col)}{source.start_row}:"
+        f"{sheet_name}!"
+        f"{_column_label(start_col)}{start_row}:"
         f"{_column_label(end_col)}{end_row}"
     )
 
