@@ -5,9 +5,11 @@ from pathlib import Path
 from shutil import copyfile
 
 from openpyxl import load_workbook
+from openpyxl.formula.translate import Translator
+from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.worksheet import Worksheet
 
-from guanbi_automation.domain.workbook_contract import WorkbookBlockSpec
+from guanbi_automation.domain.workbook_contract import WorkbookBlockSpec, WorkbookPostWriteAction
 from guanbi_automation.infrastructure.excel.block_locator import find_append_start_row
 
 
@@ -65,6 +67,12 @@ def write_block(
         )
 
     _write_rows(sheet, rows=rows, start_row=write_start_row, start_col=write_start_col)
+    action_results = _apply_post_write_actions(
+        sheet=sheet,
+        actions=block.post_write_actions,
+        written_start_row=write_start_row,
+        written_end_row=write_end_row,
+    )
     workbook.save(result)
 
     return WriteBlockResult(
@@ -73,6 +81,7 @@ def write_block(
         written_end_row=write_end_row,
         written_start_col=write_start_col,
         written_end_col=write_end_col,
+        actions=action_results,
     )
 
 
@@ -124,3 +133,60 @@ def _write_rows(
                 column=start_col + column_offset,
                 value=value,
             )
+
+
+
+def _apply_post_write_actions(
+    *,
+    sheet: Worksheet,
+    actions: list[WorkbookPostWriteAction],
+    written_start_row: int,
+    written_end_row: int,
+) -> dict[str, object]:
+    results: dict[str, object] = {}
+
+    for action in actions:
+        if action.action == "fill_fixed_value":
+            if action.column is None:
+                raise ValueError("fill_fixed_value requires a target column")
+            for row in range(written_start_row, written_end_row + 1):
+                sheet.cell(row=row, column=action.column, value=action.value)
+            results[action.action] = {
+                "column": action.column,
+                "covered_end_row": written_end_row,
+            }
+        elif action.action == "fill_down_formula":
+            covered_columns: list[int] = []
+            for column in action.columns:
+                seed_row, seed_formula = _find_seed_formula(
+                    sheet=sheet,
+                    column=column,
+                    written_start_row=written_start_row,
+                )
+                origin = f"{get_column_letter(column)}{seed_row}"
+                for row in range(written_start_row, written_end_row + 1):
+                    target = f"{get_column_letter(column)}{row}"
+                    translated = Translator(seed_formula, origin=origin).translate_formula(target)
+                    sheet[target] = translated
+                covered_columns.append(column)
+            results[action.action] = {
+                "columns": covered_columns,
+                "covered_end_row": written_end_row,
+            }
+
+    return results
+
+
+
+def _find_seed_formula(
+    *,
+    sheet: Worksheet,
+    column: int,
+    written_start_row: int,
+) -> tuple[int, str]:
+    for row in range(written_start_row - 1, 0, -1):
+        cell = sheet.cell(row=row, column=column)
+        if cell.data_type == "f" and isinstance(cell.value, str):
+            return row, cell.value
+
+    raise ValueError(f"Missing seed formula for column {column}")
