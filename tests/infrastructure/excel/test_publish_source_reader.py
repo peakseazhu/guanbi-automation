@@ -35,6 +35,10 @@ def test_read_sheet_source_excludes_header_and_trims_tail_blanks(tmp_path: Path)
     assert dataset.rows == [["x", 1], ["y", 2]]
     assert dataset.row_count == 2
     assert dataset.column_count == 2
+    assert dataset.source_range == "计算表1!A2:B3"
+
+    workbook_path.unlink()
+    assert not workbook_path.exists()
 
 
 def test_read_block_source_respects_declared_bounds(tmp_path: Path):
@@ -66,3 +70,4 @@ def test_read_block_source_respects_declared_bounds(tmp_path: Path):
     assert dataset.rows == [["区域", "值"], ["华东", 88]]
     assert dataset.row_count == 2
     assert dataset.column_count == 2
+    assert dataset.source_range == "计算表2!B2:C3"
