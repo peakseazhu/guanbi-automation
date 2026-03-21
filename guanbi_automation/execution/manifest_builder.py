@@ -111,3 +111,45 @@ def build_workbook_manifest(
     if final_error is not None:
         manifest["final_error"] = final_error.model_dump(mode="json")
     return manifest
+
+
+def build_publish_manifest(
+    *,
+    batch_id: str,
+    job_id: str,
+    workbook_path: str,
+    mappings: list[dict[str, Any]],
+    final_status: str,
+    final_error: RuntimeErrorInfo | None = None,
+) -> dict[str, Any]:
+    status_counts = _count_mapping_statuses(mappings)
+    manifest: dict[str, Any] = {
+        "batch_id": batch_id,
+        "job_id": job_id,
+        "stage_name": "publish",
+        "result_workbook_path": workbook_path,
+        "mapping_count": len(mappings),
+        "completed_mapping_count": status_counts["completed"],
+        "failed_mapping_count": status_counts["failed"],
+        "blocked_mapping_count": status_counts["blocked"],
+        "skipped_mapping_count": status_counts["skipped"],
+        "final_status": final_status,
+        "mappings": mappings,
+    }
+    if final_error is not None:
+        manifest["final_error"] = final_error.model_dump(mode="json")
+    return manifest
+
+
+def _count_mapping_statuses(mappings: list[dict[str, Any]]) -> dict[str, int]:
+    counts = {
+        "completed": 0,
+        "failed": 0,
+        "blocked": 0,
+        "skipped": 0,
+    }
+    for mapping in mappings:
+        status = mapping.get("status")
+        if status in counts:
+            counts[status] += 1
+    return counts
