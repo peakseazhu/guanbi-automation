@@ -43,13 +43,37 @@
 
 - workbook transform 产出的最终发布内容，通常是“整张结果 sheet 直接发布”，还是“从 workbook 中一个或多个固定结果区块发布到飞书的多个目标 range”
 
-这个问题确定前，不进入 publish target、batching、idempotency、rate limit 等后续细化。
+当前该问题已经收敛，结论如下：
+
+- publish 不收窄为“整张 sheet 直传”
+- publish 与 workbook 一样采用受约束目标块思路，但执行器不同
+- publish 源侧同时支持：
+  - 整张计算表读取
+  - 固定结果区块读取
+- publish 目标侧同时支持：
+  - 整个子表覆盖
+  - 指定 range 覆盖
+  - 从指定行列开始追加
+- 写入飞书的是值，不是公式
+- 表头策略默认：
+  - `header_mode=exclude`
+  - 仅在 mapping 显式声明时才允许带表头上传
+- 常见业务形态为：
+  - `1 job -> 1 result workbook -> 多个 publish source -> 同一个飞书大表下的多个子表`
+  - 少数场景会分发到多个飞书大表
+
+基于以上约束，当前推荐的 publish mapping 主路径为：
+
+- 显式 `publish source + publish target` 契约
+- 中间保留一层标准化 `publish dataset`
+- 再由 Feishu writer 分批写入目标
 
 ## 5. 当前恢复点
 
 如果会话再次中断，下一步应继续：
 
-1. 先确认 publish 目标内容形态
-2. 再做 2-3 个 publish mapping 方案对比
-3. 再输出 publish stage detailed design 初稿
+1. 输出 `publish stage detailed design` 的下一节：
+   - `read workbook values -> normalize dataset -> batch write -> publish manifest`
+2. 继续收敛 publish stage 失败语义、限流与幂等边界
+3. 完成 publish 设计文档初稿
 4. 设计批准后，写 implementation plan
