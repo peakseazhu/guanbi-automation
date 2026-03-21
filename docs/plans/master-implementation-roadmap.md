@@ -1,7 +1,7 @@
 # 观远 BI 自动化套件主实施路线图
 
 > 状态：Active
-> 最近更新：2026-03-21
+> 最近更新：2026-03-22
 > 当前执行明细：
 > - `docs/plans/2026-03-19-from-scratch-guanbi-automation-implementation-plan.md`
 > - `docs/plans/2026-03-19-runtime-contract-implementation-plan.md`
@@ -250,17 +250,25 @@
 
 ## 14. 当前恢复点
 
-截至 2026-03-21，当前执行状态已经更新为：
+截至 2026-03-22，当前执行状态已经更新为：
 
 1. `runtime contract` 已完成并通过全量测试验证。
 2. `extract runtime policy` 已按 `docs/plans/2026-03-20-extract-runtime-policy-implementation-plan.md` 完成 Task 1-7，并通过全量测试验证。
-3. `workbook detailed design` 已完成，并已写回主文档、决策日志与会话归档。
-4. `docs/plans/2026-03-21-workbook-stage-implementation-plan.md` 已完成，并通过 focused verification 与 full suite 验证。
-5. `publish stage detailed design` 已完成，并已写回主文档、决策日志与会话归档。
-6. `docs/plans/2026-03-21-publish-stage-implementation-plan.md` 已创建。
+3. `workbook detailed design` 与 `docs/plans/2026-03-21-workbook-stage-implementation-plan.md` 已完成，并通过 focused verification 与 full suite 验证。
+4. `publish stage detailed design` 与 `docs/plans/2026-03-21-publish-stage-implementation-plan.md` 已完成设计收敛并写回主文档、决策日志与会话归档。
+5. `publish stage implementation` 已在隔离 worktree `D:\get_bi_data__1\.worktrees\publish-stage-task1` 内完成 Task 1-5：
+   - Task 1 publish contract 与默认配置
+   - Task 2 workbook publish source reader
+   - Task 3 feishu target planner（含显式目标边界校验修复）
+   - Task 4 feishu sheets client adapter
+   - Task 5 publish stage 与 mapping-level manifest
+6. Task 1-5 的最近 focused verification 已达到：
+   - `tests/infrastructure/feishu/test_target_planner.py tests/infrastructure/feishu/test_client.py` -> `13 passed`
+   - `tests/domain/test_publish_contract.py tests/bootstrap/test_settings.py tests/infrastructure/excel/test_publish_source_reader.py tests/infrastructure/feishu/test_target_planner.py tests/infrastructure/feishu/test_client.py tests/execution/test_publish_stage.py tests/execution/test_extract_stage.py tests/execution/test_workbook_transform_stage.py` -> `37 passed`
 7. 当前下一恢复点前移为：
    - 按 `docs/plans/2026-03-21-publish-stage-implementation-plan.md`
-   - 从 Task 1 开始按 TDD 执行
+   - 从 Task 6 开始继续：`publish gate + pipeline wiring + README/status update`
+   - 然后执行 Task 7：focused verification、full suite、最终实现归档
 8. 在进入下一阶段时，仍然不允许：
    - 回到 legacy `src/`
    - 把 extract runtime policy 退回单一 `extract_polling`
