@@ -37,6 +37,31 @@ def test_publish_target_requires_sheet_identifier():
         )
 
 
+@pytest.mark.parametrize(
+    ("sheet_id", "sheet_name"),
+    [
+        ("", None),
+        ("   ", None),
+        (None, ""),
+        (None, "   "),
+        ("", "   "),
+    ],
+)
+def test_publish_target_rejects_blank_sheet_identifiers(
+    sheet_id: str | None,
+    sheet_name: str | None,
+):
+    with pytest.raises(ValueError):
+        PublishTargetSpec(
+            spreadsheet_token="sheet-token",
+            sheet_id=sheet_id,
+            sheet_name=sheet_name,
+            write_mode="replace_sheet",
+            start_row=2,
+            start_col=1,
+        )
+
+
 def test_publish_settings_have_safe_defaults():
     settings = PublishSettings()
 
