@@ -249,9 +249,11 @@
 1. `runtime contract` 已完成并通过全量测试验证。
 2. `extract runtime policy` 已按 `docs/plans/2026-03-20-extract-runtime-policy-implementation-plan.md` 完成 Task 1-7，并通过全量测试验证。
 3. `workbook detailed design` 已完成，并已写回主文档、决策日志与会话归档。
-4. 当前下一恢复点前移为：
-   - `docs/plans/2026-03-21-workbook-stage-implementation-plan.md` 的 Task 1
-5. 在进入 workbook 实现时，仍然不允许：
+4. `docs/plans/2026-03-21-workbook-stage-implementation-plan.md` 已完成，并通过 focused verification 与 full suite 验证。
+5. 当前下一恢复点前移为：
+   - `publish stage detailed design`
+   - 具体先收敛 `workbook output -> publish mapping contract`
+6. 在进入下一阶段时，仍然不允许：
    - 回到 legacy `src/`
    - 把 extract runtime policy 退回单一 `extract_polling`
-   - 跳过已批准实施计划，直接发散 workbook 编码
+   - 跳过下一阶段设计，直接发散 publish 编码

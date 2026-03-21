@@ -1,5 +1,9 @@
 # Workbook Stage Implementation Plan
 
+> 状态：Completed
+> 完成日期：2026-03-21
+> 验证结果：focused verification -> `23 passed`; full suite -> `49 passed`
+
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** 为 workbook 阶段落地受约束 block 写入、写后派生动作、计算触发与 block 级 manifest 证据，同时继续保持 legacy `src/` 只读参考边界。
@@ -589,3 +593,4 @@ git commit -m "feat: implement workbook stage foundation"
 - 在宣称 workbook 阶段完成之前，必须使用 `@superpowers:verification-before-completion`。
 - 仍然禁止回到 legacy `src/` 编写实现代码。
 - `tools/` 当前是未跟踪目录，不属于本计划默认提交范围。
+
