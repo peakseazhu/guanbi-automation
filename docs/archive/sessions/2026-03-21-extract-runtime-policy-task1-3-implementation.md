@@ -102,4 +102,9 @@ $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'
 2. 再进入 Task 5 的 extract stage 分段执行与 manifest 证据
 3. 然后再做 Task 6 的 preflight / stage gate / README
 
-当前工作区仍有未提交实现变更；继续前先按本次批次内容做 git 提交即可。
+当前批次代码与本会话归档已提交：
+
+- 提交：`6fdd989`
+- 提交信息：`feat: implement extract runtime policy tasks 1-3`
+
+当前 `git status` 仍显示 `tools/` 为未跟踪目录，未纳入本批次实现范围。
