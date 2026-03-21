@@ -41,6 +41,8 @@ class PublishTargetSpec(BaseModel):
 
     @model_validator(mode="after")
     def validate_append_configuration(self) -> "PublishTargetSpec":
+        if self.sheet_id is None and self.sheet_name is None:
+            raise ValueError("publish targets must declare sheet_id or sheet_name")
         if self.write_mode == "append_rows" and not self.append_locator_columns:
             raise ValueError("append_rows targets must declare append_locator_columns")
         return self
