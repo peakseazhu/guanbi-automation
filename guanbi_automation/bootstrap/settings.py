@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from guanbi_automation.domain.runtime_contract import (
@@ -81,3 +83,12 @@ class WorkbookSettings(BaseModel):
     default_writer_engine: str = "file"
     cell_limit: int = Field(default=5_000_000, gt=0)
     calculation_mode: str = "excel"
+
+
+class PublishSettings(BaseModel):
+    """Bootstrap-visible publish stage settings."""
+
+    model_config = ConfigDict(frozen=True)
+
+    chunk_row_limit: int = Field(default=500, gt=0)
+    empty_source_policy: Literal["skip", "replace_with_empty"] = "skip"
