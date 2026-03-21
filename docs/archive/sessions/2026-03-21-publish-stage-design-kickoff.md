@@ -68,12 +68,101 @@
 - 中间保留一层标准化 `publish dataset`
 - 再由 Feishu writer 分批写入目标
 
+当前已批准的 `publish mapping contract` 进一步收敛为：
+
+- 核心对象为 `PublishMappingSpec`
+- 一个 `job` 下可以声明多条 mapping
+- 每条 mapping 只负责：
+  - 从结果 workbook 的一个源位置读值
+  - 整理成标准化 publish dataset
+  - 写到一个飞书目标位置
+- contract 分为三层：
+  - `PublishSourceSpec`
+  - `PublishTargetSpec`
+  - `PublishMappingSpec`
+
+`PublishSourceSpec` 当前边界：
+
+- 源类型支持：
+  - `sheet`
+  - `block`
+- 最少字段包含：
+  - `source_id`
+  - `sheet_name`
+  - `read_mode`
+  - `start_row`
+  - `start_col`
+  - 可选 `end_row`
+  - 可选 `end_col`
+  - `header_mode`
+
+`PublishTargetSpec` 当前边界：
+
+- 目标写入模式支持：
+  - `replace_sheet`
+  - `replace_range`
+  - `append_rows`
+- 最少字段包含：
+  - `spreadsheet_token`
+  - `sheet_id` 或稳定 `sheet_name`
+  - `write_mode`
+  - `start_row`
+  - `start_col`
+  - 可选 `end_row`
+  - 可选 `end_col`
+  - 可选 `append_locator_columns`
+
+`PublishMappingSpec` 当前边界：
+
+- 最少字段包含：
+  - `mapping_id`
+  - `source`
+  - `target`
+
+当前默认规则：
+
+- 默认只更新值，不改飞书目标结构
+- 默认不带表头上传
+- `append_rows` 必须显式声明 `append_locator_columns`
+- `replace_range` 必须能由配置边界与源数据尺寸共同确定唯一目标矩形
+- 一个 mapping 不做多源混写
+
+当前已批准的 `publish` 数据流固定为：
+
+1. `resolve mappings + preflight`
+2. `read workbook values -> publish dataset`
+3. `write publish dataset -> feishu target`
+4. `publish manifest`
+
+其中：
+
+- preflight 先校验结果 workbook、源区块和飞书目标是否可用
+- 读取 workbook 时只取值，不取公式
+- 中间 `publish dataset` 至少保留：
+  - `mapping_id`
+  - `source_range`
+  - `header_mode`
+  - `rows`
+  - `row_count`
+  - `column_count`
+- publish manifest 至少保留：
+  - `mapping_id`
+  - `source_sheet/source_range`
+  - `target_spreadsheet/target_sheet/target_range`
+  - `write_mode`
+  - `row_count`
+  - `column_count`
+  - `chunk_count`
+  - `written_row_count`
+  - `status`
+  - `final_error`
+
 ## 5. 当前恢复点
 
 如果会话再次中断，下一步应继续：
 
 1. 输出 `publish stage detailed design` 的下一节：
-   - `read workbook values -> normalize dataset -> batch write -> publish manifest`
-2. 继续收敛 publish stage 失败语义、限流与幂等边界
+   - 失败语义、分批写入、限流与幂等边界
+2. 继续收敛 publish stage 的 source/target range 检测细则
 3. 完成 publish 设计文档初稿
 4. 设计批准后，写 implementation plan
