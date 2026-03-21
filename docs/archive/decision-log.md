@@ -130,6 +130,17 @@
 - Consequences：
   - workbook v1 边界固定为 `1 job -> 1 template workbook -> 1 result workbook`。
   - 智能识别只允许发生在 block 显式边界内，不允许全表自由猜测。
-  - 写后派生动作第一版固定支持 `fill_down_formula` 与 `fill_fixed_value`。
-  - 公式下拉必须以最终真实写入行段为准，且覆盖不足时稳定失败。
-  - 尺寸护栏继续保留，超阈值默认阻断，不自动把大表切回 COM 批量直写。
+- 写后派生动作第一版固定支持 `fill_down_formula` 与 `fill_fixed_value`。
+- 公式下拉必须以最终真实写入行段为准，且覆盖不足时稳定失败。
+- 尺寸护栏继续保留，超阈值默认阻断，不自动把大表切回 COM 批量直写。
+
+## ADR-2026-03-21-14：Publish v1 采用受约束 workbook-to-Feishu 映射与 value-only 发布
+
+- Status：Accepted
+- Context：workbook stage 已完成后，用户明确 publish 的真实业务不是“把结果 workbook 整本上传”，而是将一个结果 workbook 中的多个计算表或结果区块，映射到飞书一个或多个 spreadsheet 下的多个子表。用户同时确认：publish 源侧需要同时支持整张计算表与固定区块，目标侧需要同时支持整表覆盖、指定范围覆盖和追加；飞书侧写入的是值，不是公式；大多数日报场景应保留飞书目标结构，只更新值。
+- Decision：publish v1 采用“显式 `publish source + publish target` 契约，中间保留标准化 `publish dataset`”的模型。source 支持 `sheet / block` 两种读取方式，target 支持 `replace_sheet / replace_range / append_rows` 三种写入方式。默认 `header_mode=exclude`，默认只写值不写公式，默认不自动创建飞书子表。publish 的最小执行与诊断单元是 `mapping`，而不是整个 job。
+- Consequences：
+  - publish 需要新增独立的 contract、source reader、target resolver、chunk writer 与 mapping 级 manifest。
+  - publish 不会回头要求 workbook 先产出 publish-specific outputs，而是在 publish 阶段自行从结果 workbook 读取值并标准化。
+  - `append_rows` 默认不视为安全重跑操作；同一 batch / 同一 mapping / 同一目标的追加式重跑默认阻断。
+  - 空数据默认采用 `empty_source_policy=skip`，不默认把空结果解释成“清空飞书目标”。

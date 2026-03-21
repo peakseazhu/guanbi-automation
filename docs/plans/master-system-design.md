@@ -643,6 +643,70 @@ writer engine 的正式方向为：
 
 因此 workbook 大表默认不允许直接压给 COM 做批量写入；写入前仍然必须记录 `row_count / column_count / cell_count`，由 stage gate 决定继续或阻断。
 
+### 10.4.3 Publish Detailed Design
+
+在 workbook stage 完成后，publish 阶段正式收敛为“受约束 workbook-to-Feishu 映射”模型，而不是结果 workbook 整本直传。
+
+当前正式边界为：
+
+- `1 job -> 1 result workbook -> 多个 publish mappings`
+- 一个 mapping 只负责一个 source 与一个 target
+- source 支持：
+  - `sheet`
+  - `block`
+- target 支持：
+  - `replace_sheet`
+  - `replace_range`
+  - `append_rows`
+- publish 写入飞书的是值，不是公式
+- 默认 `header_mode=exclude`
+- 默认不自动创建飞书子表
+
+当前采用的 publish mapping 模型至少包含：
+
+- `mapping_id`
+- `source`
+- `target`
+
+其中 source 至少声明：
+
+- `sheet_name`
+- `read_mode`
+- `start_row`
+- `start_col`
+- 可选 `end_row / end_col`
+- `header_mode`
+
+其中 target 至少声明：
+
+- `spreadsheet_token`
+- `sheet_id` 或稳定 `sheet_name`
+- `write_mode`
+- `start_row`
+- `start_col`
+- 可选 `end_row / end_col`
+- 可选 `append_locator_columns`
+
+publish v1 的执行顺序固定为：
+
+1. `resolve mappings + preflight`
+2. `read workbook values -> publish dataset`
+3. `write publish dataset -> feishu target`
+4. `publish manifest`
+
+其中：
+
+- `publish dataset` 是 source 与 target 之间的标准化数据层
+- mapping 是 publish 的最小执行与诊断单元
+- chunk 写入默认串行执行
+
+当前默认风险护栏为：
+
+- `append_rows` 默认不是安全重跑操作
+- 同一 batch / 同一 mapping / 同一目标的追加式重跑默认 `blocked`
+- `empty_source_policy` 默认 `skip`
+- 目标子表必须能被稳定解析，不允许模糊匹配后直接写入
+
 ## 11. 错误处理与可观测性
 
 新系统必须把 legacy 日志里暴露出的真实失败模式显式工程化：
@@ -652,7 +716,7 @@ writer engine 的正式方向为：
 - 导出任务轮询必须有 `connect timeout`、`read timeout`、指数退避或分级退避、最大等待时长和最终失败态；manifest 中要记录 `task_id`、尝试次数、最后一次错误类型与最后一次响应上下文。
 - Excel 读写必须区分：文件不存在、sheet 不存在、writer engine 不可用、COM 异常、数据形状异常、数据量超阈值。
 - workbook 大批量数据传输不得默认依赖 Excel COM 直写；必须显式记录 writer engine、数据尺寸和触发的护栏策略。
-- 飞书发布必须区分：鉴权失败、sheet 不存在、范围无效、批量写入失败。
+- 飞书发布必须区分：鉴权失败、sheet 不存在、范围无效、源读取失败、限流重试耗尽、批量写入失败。
 - 日志必须统一编码为 UTF-8，并在结构化字段中保留 `batch_id`、`job_id`、`extract_id`、`chart_id`、`task_id`，避免历史日志中的乱码和上下文丢失问题。
 - 失败必须落到 manifest，而不是只打印到控制台。
 
@@ -668,12 +732,16 @@ writer engine 的正式方向为：
    - extract signature 生成与去重
    - workbook block locator
    - workbook 公式下拉与固定值填充
+   - publish mapping contract
+   - publish source / target 范围识别
+   - publish chunk 切分与 append 护栏
 2. 集成测试：
    - 观远客户端请求构造
    - 页面快照解析
    - 运行归档写入
    - run planner 展开结果
    - workbook block 写入与结果 workbook 归档
+   - publish dataset 生成与 mapping 级 manifest
 3. 手工验收：
    - 登录
    - 页面树刷新
@@ -714,7 +782,10 @@ writer engine 的正式方向为：
 在 workbook 阶段稳定后接入：
 
 - 飞书 Sheets 发布
+- workbook source -> publish mapping contract
+- value-only publish dataset
 - 批次写入摘要
+- mapping 级 publish manifest
 - 失败重试与限流处理
 
 ## 14. 当前已知未决项
@@ -723,8 +794,8 @@ writer engine 的正式方向为：
 
 - `DS_ELEMENTS` 类型筛选器的候选值接口。
 - Workbook 大表写入时 file-based 安全阈值与回退策略。
-- Workbook 结果输出区与 publish 映射契约。
-- 飞书写入的限流、重试与幂等策略。
+- 飞书写入 chunk 大小与 retry budget 的精确默认值。
+- `append_rows` 的后续业务键去重增强策略。
 
 ## 15. 参考证据清单
 
