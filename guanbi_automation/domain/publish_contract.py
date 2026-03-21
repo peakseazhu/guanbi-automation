@@ -51,6 +51,16 @@ class PublishTargetSpec(BaseModel):
         return self
 
 
+class PublishMappingSpec(BaseModel):
+    """Minimal publish mapping contract for one source-to-target transfer."""
+
+    model_config = ConfigDict(frozen=True)
+
+    mapping_id: str
+    source: PublishSourceSpec
+    target: PublishTargetSpec
+
+
 @dataclass(frozen=True)
 class PublishDataset:
     """Normalized publish-source rows extracted from a workbook result area."""
