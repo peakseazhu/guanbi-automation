@@ -126,6 +126,10 @@ def _resolve_end_index(
     inferred_size: int,
 ) -> int:
     if explicit_end is not None:
+        if explicit_end < start_index:
+            raise ValueError("publish target end index must not precede start index")
+        if inferred_size > 0 and (explicit_end - start_index + 1) < inferred_size:
+            raise ValueError("publish target dataset shape does not fit explicit bounds")
         return explicit_end
     if inferred_size < 1:
         return start_index
@@ -155,3 +159,4 @@ def _column_label(column_number: int) -> str:
         label = chr(65 + remainder) + label
 
     return label
+
