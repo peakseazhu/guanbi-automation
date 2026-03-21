@@ -7,6 +7,8 @@
 > - `docs/plans/2026-03-19-runtime-contract-implementation-plan.md`
 > - `docs/plans/2026-03-20-extract-runtime-policy-design.md`
 > - `docs/plans/2026-03-20-extract-runtime-policy-implementation-plan.md`
+> - `docs/plans/2026-03-21-workbook-detailed-design.md`
+> - `docs/plans/2026-03-21-workbook-stage-implementation-plan.md`
 
 ## 1. 实施总原则
 
@@ -155,9 +157,10 @@
 
 - workbook ingest stage
 - workbook transform stage
-- Excel 规则模型
-- writer engine 抽象
+- 受约束 block 写入模型
+- file-based writer + calculation runner 双平面
 - 行数 / 列数 / 单元格总量护栏
+- 辅助列公式下拉与固定列补值
 - workbook 归档结构
 - COM 异常和大表写入错误分类
 
@@ -245,9 +248,10 @@
 
 1. `runtime contract` 已完成并通过全量测试验证。
 2. `extract runtime policy` 已按 `docs/plans/2026-03-20-extract-runtime-policy-implementation-plan.md` 完成 Task 1-7，并通过全量测试验证。
-3. 当前下一恢复点前移为：
-   - `workbook detailed design`
-4. 在进入 workbook 实现前，仍然不允许：
+3. `workbook detailed design` 已完成，并已写回主文档、决策日志与会话归档。
+4. 当前下一恢复点前移为：
+   - `docs/plans/2026-03-21-workbook-stage-implementation-plan.md` 的 Task 1
+5. 在进入 workbook 实现时，仍然不允许：
    - 回到 legacy `src/`
    - 把 extract runtime policy 退回单一 `extract_polling`
-   - 跳过 workbook detailed design 直接展开 workbook 编码
+   - 跳过已批准实施计划，直接发散 workbook 编码

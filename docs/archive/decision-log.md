@@ -121,3 +121,15 @@
   - manifest 必须记录模板默认 profile、实际生效 profile 与三段运行证据。
   - `PROCESSING` 等正常轮询状态不消耗错误重试预算；只有瞬时网络错误才进入有限重试。
   - 后续调参优先围绕 profile，而不是在各处散落修改 timeout 数字。
+
+## ADR-2026-03-21-13：Workbook v1 采用受约束块写入与双平面执行
+
+- Status：Accepted
+- Context：用户确认 workbook 的真实目标是“把每日 extract 数据写回模板底表，保留结构，触发计算”，而当前目标区域大多数是普通 `sheet` 区块，不是 `Excel Table / Named Range`。同时 legacy 证据继续表明：锚点内范围识别是有效经验，但大表默认经由 `xlwings` / COM 批量写入已经在真实日志中失稳。
+- Decision：workbook v1 采用 `受约束块写入` 模型。每个目标区块显式声明 `sheet_name + start_row/start_col + write_mode + clear_policy + post_write_actions`，支持 `replace_sheet / replace_range / append_rows` 三种写入模式；默认语义为“清值不清结构”。默认数据平面采用 file-based writer，Excel / COM 只承担 calculation plane，不作为默认大块数据写入平面。
+- Consequences：
+  - workbook v1 边界固定为 `1 job -> 1 template workbook -> 1 result workbook`。
+  - 智能识别只允许发生在 block 显式边界内，不允许全表自由猜测。
+  - 写后派生动作第一版固定支持 `fill_down_formula` 与 `fill_fixed_value`。
+  - 公式下拉必须以最终真实写入行段为准，且覆盖不足时稳定失败。
+  - 尺寸护栏继续保留，超阈值默认阻断，不自动把大表切回 COM 批量直写。

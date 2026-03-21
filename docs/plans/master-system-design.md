@@ -585,6 +585,64 @@ runs/
 - 只有瞬时网络错误才消耗有限重试
 - extract manifest 必须记录实际生效 profile 以及 `submit / poll / download` 分段运行证据
 
+### 10.4.2 Workbook Detailed Design
+
+在 `extract runtime policy` 完成后，workbook 阶段正式收敛为“受约束块写入”模型，而不是通用 Excel 编辑器。
+
+当前正式边界为：
+
+- `1 job -> 1 template workbook -> 1 result workbook`
+- 一个 job 可以消费多个 extract 文件
+- 一个结果 workbook 可以包含多个普通 `sheet` block
+- workbook 默认目标是更新底表数据区，保留模板结构，供计算表继续计算
+
+当前采用的目标 block 模型至少包含：
+
+- `block_id`
+- `sheet_name`
+- `source_extract_id`
+- `start_row`
+- `start_col`
+- `write_mode`
+- `clear_policy`
+- 可选 `end_row / end_col`
+- 可选 `append_locator_columns`
+- 可选 `post_write_actions`
+
+v1 固定支持的写入模式为：
+
+- `replace_sheet`
+- `replace_range`
+- `append_rows`
+
+默认语义为：
+
+- 清值，不清结构
+
+这意味着：
+
+- 默认不清公式、格式、合并关系
+- 所有智能识别只能发生在 block 显式边界内
+- `append_rows` 的末行定位必须受源数据列域或 `append_locator_columns` 约束
+
+第一版固定支持的写后动作为：
+
+- `fill_down_formula`
+- `fill_fixed_value`
+
+其中：
+
+- `fill_down_formula` 必须保持单元格仍为公式，而不是写死值
+- 公式下拉必须遵守 Excel 相对/绝对引用语义
+- 公式覆盖行数必须对齐本次真实写入的最终行段，覆盖不足时稳定失败
+
+writer engine 的正式方向为：
+
+- file-based writer 作为默认数据平面
+- Excel / COM 只作为 calculation plane
+
+因此 workbook 大表默认不允许直接压给 COM 做批量写入；写入前仍然必须记录 `row_count / column_count / cell_count`，由 stage gate 决定继续或阻断。
+
 ## 11. 错误处理与可观测性
 
 新系统必须把 legacy 日志里暴露出的真实失败模式显式工程化：
@@ -608,11 +666,14 @@ runs/
    - 返回结构归一化
    - 阶段依赖校验
    - extract signature 生成与去重
+   - workbook block locator
+   - workbook 公式下拉与固定值填充
 2. 集成测试：
    - 观远客户端请求构造
    - 页面快照解析
    - 运行归档写入
    - run planner 展开结果
+   - workbook block 写入与结果 workbook 归档
 3. 手工验收：
    - 登录
    - 页面树刷新
@@ -644,6 +705,8 @@ runs/
 
 - workbook ingest
 - workbook transform
+- 受约束 block 写入
+- 辅助列公式下拉与固定列补值
 - 标准输出数据生成
 
 ### Milestone C：Publish
@@ -659,8 +722,8 @@ runs/
 以下问题已知但尚未完全锁死，需要在后续会话持续收敛：
 
 - `DS_ELEMENTS` 类型筛选器的候选值接口。
-- Excel 写入规则中大表、清尾、保头、定位锚点的组合约束。
-- Workbook 大表写入时 `file-based engine / COM / mixed mode` 的切换阈值与回退策略。
+- Workbook 大表写入时 file-based 安全阈值与回退策略。
+- Workbook 结果输出区与 publish 映射契约。
 - 飞书写入的限流、重试与幂等策略。
 
 ## 15. 参考证据清单
