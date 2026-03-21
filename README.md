@@ -5,8 +5,15 @@
 ## Runtime Contract Baseline
 
 - `doctor`：通过 `guanbi_automation.application.doctor_service.run_doctor(...)` 返回结构化 `DoctorReport`
-- `polling policy`：由 `guanbi_automation.bootstrap.settings.RuntimePolicySettings` 提供默认 extract polling 配置
+- `extract runtime policy`：由 `guanbi_automation.bootstrap.settings.RuntimePolicySettings` 提供 `fast / standard / heavy` 三档 extract profile，默认档位为 `standard`
 - `stage gates`：由 `guanbi_automation.execution.stage_gates` 统一判断 extract / workbook / publish 是否允许进入
+
+## Extract Runtime Profiles
+
+- `standard` 是默认 profile
+- `extract template` 保存默认 profile
+- `run batch` 可提供 runtime profile override，解析顺序为 `override > template default`
+- extract manifest 会记录 `template_runtime_profile`、`effective_runtime_profile` 以及 `submit / poll / download` 分段证据
 
 ## Current Verification
 
@@ -14,7 +21,9 @@
 
 - runtime contract domain models
 - environment doctor
+- extract runtime profile resolution
 - polling policy and network error mapping
+- request budget helper for submit / download
 - structured event and manifest helpers
 - stage gate evaluation
-- extract stage runtime evidence
+- extract stage segmented runtime evidence

@@ -25,6 +25,16 @@ def test_extract_gate_is_ready_when_policy_is_present():
     assert decision.status == "ready"
 
 
+def test_extract_gate_blocks_unknown_runtime_profile():
+    decision = evaluate_extract_gate(
+        policy=None,
+        profile_name="ultra",
+        available_profiles={"fast", "standard", "heavy"},
+    )
+
+    assert decision.status == "blocked"
+
+
 def test_publish_gate_blocks_when_target_is_missing():
     decision = evaluate_publish_gate(target_ready=False)
 

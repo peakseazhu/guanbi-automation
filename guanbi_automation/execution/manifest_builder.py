@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from guanbi_automation.domain.runtime_contract import PollingPolicy, RuntimeErrorInfo
+from guanbi_automation.domain.runtime_contract import (
+    ExtractRuntimePolicy,
+    PollingPolicy,
+    RuntimeErrorInfo,
+)
 
 
 def build_batch_manifest(
@@ -27,7 +31,21 @@ def build_extract_manifest(
     *,
     extract_id: str,
     stage_name: str,
-    runtime_policy: PollingPolicy | None = None,
+    runtime_policy: ExtractRuntimePolicy | None = None,
+    template_runtime_profile: str | None = None,
+    effective_runtime_profile: str | None = None,
+    submit_attempts: int = 0,
+    submit_elapsed_seconds: float = 0.0,
+    submit_final_error: RuntimeErrorInfo | None = None,
+    poll_attempts: int = 0,
+    poll_total_wait_seconds: float = 0.0,
+    poll_elapsed_seconds: float = 0.0,
+    poll_final_error: RuntimeErrorInfo | None = None,
+    download_attempts: int = 0,
+    download_elapsed_seconds: float = 0.0,
+    download_final_error: RuntimeErrorInfo | None = None,
+    extract_total_elapsed_seconds: float = 0.0,
+    deadline_exhausted: bool = False,
     final_error: RuntimeErrorInfo | None = None,
     events: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
@@ -35,6 +53,30 @@ def build_extract_manifest(
         "extract_id": extract_id,
         "stage_name": stage_name,
         "events": events or [],
+        "template_runtime_profile": template_runtime_profile,
+        "effective_runtime_profile": effective_runtime_profile,
+        "submit_attempts": submit_attempts,
+        "submit_elapsed_seconds": submit_elapsed_seconds,
+        "submit_final_error": (
+            submit_final_error.model_dump(mode="json")
+            if submit_final_error is not None
+            else None
+        ),
+        "poll_attempts": poll_attempts,
+        "poll_total_wait_seconds": poll_total_wait_seconds,
+        "poll_elapsed_seconds": poll_elapsed_seconds,
+        "poll_final_error": (
+            poll_final_error.model_dump(mode="json") if poll_final_error is not None else None
+        ),
+        "download_attempts": download_attempts,
+        "download_elapsed_seconds": download_elapsed_seconds,
+        "download_final_error": (
+            download_final_error.model_dump(mode="json")
+            if download_final_error is not None
+            else None
+        ),
+        "extract_total_elapsed_seconds": extract_total_elapsed_seconds,
+        "deadline_exhausted": deadline_exhausted,
     }
     if runtime_policy is not None:
         manifest["runtime_policy"] = runtime_policy.model_dump(mode="json")

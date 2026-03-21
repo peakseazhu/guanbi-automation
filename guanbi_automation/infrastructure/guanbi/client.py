@@ -20,6 +20,7 @@ class PollResult:
     completed: bool
     attempts: int
     total_wait_seconds: float
+    elapsed_seconds: float
     payload: Any | None = None
     error: RuntimeErrorInfo | None = None
 
@@ -51,6 +52,7 @@ def poll_with_policy(
                     completed=False,
                     attempts=attempts,
                     total_wait_seconds=elapsed_seconds,
+                    elapsed_seconds=elapsed_seconds,
                     error=error,
                 )
             if elapsed_seconds >= policy.timeout_budget.max_wait:
@@ -58,6 +60,7 @@ def poll_with_policy(
                     completed=False,
                     attempts=attempts,
                     total_wait_seconds=elapsed_seconds,
+                    elapsed_seconds=elapsed_seconds,
                     error=RuntimeErrorInfo(
                         code=RuntimeErrorCode.POLL_TIMEOUT,
                         message="Polling budget exhausted",
@@ -73,6 +76,7 @@ def poll_with_policy(
                     completed=False,
                     attempts=attempts,
                     total_wait_seconds=elapsed_seconds,
+                    elapsed_seconds=elapsed_seconds,
                     error=error,
                 )
 
@@ -86,6 +90,7 @@ def poll_with_policy(
                     completed=False,
                     attempts=attempts,
                     total_wait_seconds=elapsed_seconds,
+                    elapsed_seconds=elapsed_seconds,
                     error=RuntimeErrorInfo(
                         code=RuntimeErrorCode.POLL_TIMEOUT,
                         message="Polling budget exhausted before next retry",
@@ -104,6 +109,7 @@ def poll_with_policy(
                 completed=False,
                 attempts=attempts,
                 total_wait_seconds=elapsed_seconds,
+                elapsed_seconds=elapsed_seconds,
                 error=RuntimeErrorInfo(
                     code=RuntimeErrorCode.PAYLOAD_PARSE_ERROR,
                     message=str(exc),
@@ -116,6 +122,7 @@ def poll_with_policy(
                 completed=True,
                 attempts=attempts,
                 total_wait_seconds=elapsed_seconds,
+                elapsed_seconds=elapsed_seconds,
                 payload=payload,
             )
 
@@ -124,6 +131,7 @@ def poll_with_policy(
                 completed=False,
                 attempts=attempts,
                 total_wait_seconds=elapsed_seconds,
+                elapsed_seconds=elapsed_seconds,
                 error=RuntimeErrorInfo(
                     code=RuntimeErrorCode.POLL_TIMEOUT,
                     message="Polling budget exhausted",
@@ -140,6 +148,7 @@ def poll_with_policy(
                 completed=False,
                 attempts=attempts,
                 total_wait_seconds=elapsed_seconds,
+                elapsed_seconds=elapsed_seconds,
                 error=RuntimeErrorInfo(
                     code=RuntimeErrorCode.POLL_TIMEOUT,
                     message="Polling budget exhausted before next status check",
