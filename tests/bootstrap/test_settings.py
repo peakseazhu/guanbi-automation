@@ -1,5 +1,5 @@
 from guanbi_automation.bootstrap.container import build_runtime_contract_container
-from guanbi_automation.bootstrap.settings import RuntimePolicySettings
+from guanbi_automation.bootstrap.settings import RuntimePolicySettings, WorkbookSettings
 
 
 def test_runtime_policy_settings_have_defaults():
@@ -14,3 +14,10 @@ def test_container_exposes_runtime_policy_settings():
 
     assert isinstance(container.runtime_policy, RuntimePolicySettings)
     assert container.runtime_policy.extract.profiles["fast"].submit.connect_timeout == 3.0
+
+
+def test_workbook_settings_default_to_file_writer_and_positive_cell_limit():
+    settings = WorkbookSettings()
+
+    assert settings.default_writer_engine == "file"
+    assert settings.cell_limit > 0

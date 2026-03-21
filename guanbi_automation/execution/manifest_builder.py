@@ -83,3 +83,31 @@ def build_extract_manifest(
     if final_error is not None:
         manifest["final_error"] = final_error.model_dump(mode="json")
     return manifest
+
+
+def build_workbook_manifest(
+    *,
+    batch_id: str,
+    job_id: str,
+    stage_name: str,
+    template_path: str,
+    result_path: str,
+    blocks: list[dict[str, Any]],
+    completed: bool,
+    calculation_completed: bool | None = None,
+    final_error: RuntimeErrorInfo | None = None,
+) -> dict[str, Any]:
+    manifest = {
+        "batch_id": batch_id,
+        "job_id": job_id,
+        "stage_name": stage_name,
+        "template_path": template_path,
+        "result_path": result_path,
+        "blocks": blocks,
+        "completed": completed,
+    }
+    if calculation_completed is not None:
+        manifest["calculation_completed"] = calculation_completed
+    if final_error is not None:
+        manifest["final_error"] = final_error.model_dump(mode="json")
+    return manifest

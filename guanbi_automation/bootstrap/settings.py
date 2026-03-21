@@ -71,3 +71,13 @@ class RuntimePolicySettings(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     extract: ExtractRuntimeSettings = Field(default_factory=ExtractRuntimeSettings)
+
+
+class WorkbookSettings(BaseModel):
+    """Bootstrap-visible workbook stage settings."""
+
+    model_config = ConfigDict(frozen=True)
+
+    default_writer_engine: str = "file"
+    cell_limit: int = Field(default=5_000_000, gt=0)
+    calculation_mode: str = "excel"
