@@ -25,7 +25,11 @@ def run_stage_preflight(stage_name: str, **kwargs: Any) -> StageGateDecision:
             template_path=kwargs.get("template_path"),
         )
     if stage_name == "publish":
-        return evaluate_publish_gate(target_ready=kwargs.get("target_ready", False))
+        return evaluate_publish_gate(
+            target_ready=kwargs.get("target_ready", False),
+            workbook_path=kwargs.get("workbook_path"),
+            mapping_count=kwargs.get("mapping_count", 0),
+        )
 
     return StageGateDecision(
         status="blocked",
