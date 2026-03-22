@@ -1,6 +1,6 @@
 # Guanbi Automation
 
-从 0 构建的观远 BI 自动化套件当前已完成 runtime contract、extract runtime policy、workbook foundation，并进入 publish foundation 的 runtime wiring 收口阶段。
+从 0 构建的观远 BI 自动化套件当前已完成 runtime contract、extract runtime policy、workbook stage、publish stage，并新增 publish live verification 入口用于真实样本写入与读回校验。
 
 ## Runtime Contract Baseline
 
@@ -51,6 +51,40 @@
 - `append_rows` 重跑默认阻断，不视为天然幂等
 - publish gate 会在进入阶段前校验 workbook、mapping 数量与 target readiness
 
+## Publish Live Verification
+
+当前新增了一个专用真实样本验证入口：
+
+- 入口命令：`python -m guanbi_automation.live_verification.publish_real_sample`
+- 默认 spec：`config/live_verification/publish/real_sample.local.yaml`
+- 示例 spec：`config/live_verification/publish/real_sample.example.yaml`
+- 运行证据目录：`runs/live_verification/publish/<timestamp>/`
+
+这个入口不会回到 legacy `src/` 运行链路，而是复用新实现：
+
+- 从 result workbook 读取值并做 canonical normalization
+- 用 Feishu 官方 Sheets API 执行 `values_batch_update`
+- 对相同目标范围做 readback
+- 输出矩阵级 comparison 与本地 evidence archive
+
+当前首个真实样本固定为：
+
+- workbook：`D:\get_bi_data__1\执行管理字段更新版.xlsx`
+- source sheet：`全国执行`
+- header mode：`include`
+- target sheet：`测试子表 / ySyhcD`
+- write mode：`replace_sheet`
+- target anchor：`A1`
+
+运行前提：
+
+- `.env` 中必须提供 `FEISHU_APP_ID` 与 `FEISHU_APP_SECRET`
+- 若在 `.worktrees/...` 中运行，入口会优先回退到共享仓库根目录 `.env`
+- 飞书应用至少需要 `sheets:spreadsheet` 或 `drive:drive` 写权限
+- 目标 spreadsheet 还必须给该应用开放文档访问权限
+
+当前真实样本 `全国执行` 为 `80 x 127`，已超过飞书单次 `100` 列上限，因此 live verification 会按列自动拆成多个矩形范围，再统一写入和读回。
+
 ## Current Verification
 
 当前已覆盖：
@@ -65,3 +99,4 @@
 - extract stage segmented runtime evidence
 - workbook contract, locator, loader, writer, ingest, transform foundation
 - publish contract, source reader, target planner, client adapter, stage, and runtime wiring foundation
+- publish live verification spec, Feishu readback adapter, column-aware range planning, service archive, and thin real-sample entrypoint
