@@ -11,6 +11,8 @@
 > - `docs/plans/2026-03-21-workbook-stage-implementation-plan.md`
 > - `docs/plans/2026-03-21-publish-stage-detailed-design.md`
 > - `docs/plans/2026-03-21-publish-stage-implementation-plan.md`
+> - `docs/plans/2026-03-22-publish-live-verification-design.md`
+> - `docs/plans/2026-03-22-publish-live-verification-implementation-plan.md`
 
 ## 1. 实施总原则
 
@@ -267,15 +269,18 @@
 6. 当前 publish implementation 的最近验证证据已达到：
    - `tests/domain/test_publish_contract.py tests/bootstrap/test_settings.py tests/infrastructure/excel/test_publish_source_reader.py tests/infrastructure/feishu/test_target_planner.py tests/infrastructure/feishu/test_client.py tests/execution/test_publish_stage.py tests/execution/test_stage_gates.py` -> `46 passed`
    - `tests` -> `86 passed`
-7. 当前恢复点前移为：
-   - `publish stage implementation` 已完成
+7. `publish live verification` 已完成设计收敛，并已形成：
+   - `docs/plans/2026-03-22-publish-live-verification-design.md`
+   - `docs/plans/2026-03-22-publish-live-verification-implementation-plan.md`
+   - 对应决策日志与 session archive
+8. 当前恢复点前移为：
    - 当前分支为 `publish-stage-task1`
-   - 当前最新提交为 `13259ce docs: archive publish stage implementation results`
-   - 下一阶段优先进入：
-     - publish 真实样本验证
-     - publish hardening / retry budget 与 chunk 默认值收敛
+   - 当前最新提交仍为 `13259ce docs: archive publish stage implementation results`
+   - 下一阶段直接执行 `docs/plans/2026-03-22-publish-live-verification-implementation-plan.md`
+   - 完成真实样本验证后，再进入：
+     - publish hardening / retry budget 与 row/column chunk 默认值收敛
      - finishing / merge 决策
-8. 在进入下一阶段时，仍然不允许：
+9. 在进入下一阶段时，仍然不允许：
    - 回到 legacy `src/`
    - 把 extract runtime policy 退回单一 `extract_polling`
    - 绕开三层文档治理直接推进未归档实现

@@ -144,3 +144,17 @@
   - publish 不会回头要求 workbook 先产出 publish-specific outputs，而是在 publish 阶段自行从结果 workbook 读取值并标准化。
   - `append_rows` 默认不视为安全重跑操作；同一 batch / 同一 mapping / 同一目标的追加式重跑默认阻断。
   - 空数据默认采用 `empty_source_policy=skip`，不默认把空结果解释成“清空飞书目标”。
+
+## ADR-2026-03-22-15：Publish 真实样本验证沿用既有飞书资源，并按官方 100 列限制做列感知写入
+
+- Status：Accepted
+- Context：`publish stage implementation` 完成后，需要进入真实样本验证，而不是继续停留在 mock 层。基于本地证据：
+  - 根目录 `.env` 当前只包含 `FEISHU_APP_ID` 与 `FEISHU_APP_SECRET`，不包含 spreadsheet token。
+  - 既有 spreadsheet 通过官方 `query sheets` 接口已确认存在空白临时子表 `测试子表 / ySyhcD`。
+  - 真实样本 `D:\get_bi_data__1\执行管理字段更新版.xlsx` 的 `全国执行` 当前形状为 `80 x 127`，而飞书官方“向单个范围写入数据”与“向多个范围写入数据”文档都限制单次写入最多 `100` 列。
+- Decision：publish 真实样本验证采用“沿用既有自建应用凭据 + 沿用既有 spreadsheet 文档 + 临时空白子表 + 读回比对”的路径。运行时不直接依赖 legacy `src/config/config.json`；既有 spreadsheet token 只作为迁移输入，落到专用 live-verification spec。对宽表样本，写入必须按列或多范围切分，必要时使用 `values_batch_update`，不能继续假设“只按行分块”即可覆盖真实场景。
+- Consequences：
+  - 需要新增专用的 publish live verification 设计与实施计划，而不是把真实样本验证混入生产 job 配置系统。
+  - Feishu client 需要补齐 tenant token、读回与多范围写入能力。
+  - publish hardening 的下一优先级前移为 row/column 双维度 chunk 策略，而不是只调行数阈值。
+  - live verification 归档必须记录真实样本形状、目标子表元数据、写入分段与读回比对结果。
