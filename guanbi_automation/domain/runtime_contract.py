@@ -10,6 +10,7 @@ from guanbi_automation.domain.runtime_errors import RuntimeErrorCode
 BackoffPolicy = Literal["fixed", "exponential"]
 DoctorCheckStatus = Literal["passed", "failed"]
 StageGateStatus = Literal["ready", "blocked", "degraded"]
+ExtractRuntimeProfileName = Literal["fast", "standard", "heavy"]
 
 
 class TimeoutBudget(BaseModel):
@@ -48,6 +49,45 @@ class PollingPolicy(BaseModel):
     timeout_budget: TimeoutBudget
     retry_budget: RetryBudget
     backoff_policy: BackoffPolicy = "fixed"
+
+
+class RequestBudget(BaseModel):
+    """Per-request runtime budget for submit/download style operations."""
+
+    model_config = ConfigDict(frozen=True)
+
+    connect_timeout: float = Field(gt=0)
+    read_timeout: float = Field(gt=0)
+    max_retries: int = Field(ge=0)
+
+
+class PollBudget(BaseModel):
+    """Polling-specific runtime budget for extract task status checks."""
+
+    model_config = ConfigDict(frozen=True)
+
+    poll_interval: float = Field(gt=0)
+    max_wait: float = Field(gt=0)
+    transient_error_retries: int = Field(ge=0)
+    backoff_policy: BackoffPolicy = "fixed"
+
+    @model_validator(mode="after")
+    def validate_poll_window(self) -> "PollBudget":
+        if self.max_wait <= self.poll_interval:
+            raise ValueError("max_wait must be greater than poll_interval")
+        return self
+
+
+class ExtractRuntimePolicy(BaseModel):
+    """Resolved runtime policy for a single extract execution."""
+
+    model_config = ConfigDict(frozen=True)
+
+    profile_name: ExtractRuntimeProfileName
+    submit: RequestBudget
+    poll: PollBudget
+    download: RequestBudget
+    total_deadline_seconds: float = Field(gt=0)
 
 
 class StageGateDecision(BaseModel):

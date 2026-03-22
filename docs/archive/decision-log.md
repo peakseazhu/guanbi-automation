@@ -110,3 +110,37 @@
   - extract-only 里程碑在真正实现前，必须先有最小稳定运行契约。
   - workbook 设计以后不再独立定义自己的错误语义和日志字段。
   - 当前规划与后续实施计划都要把 runtime contract 作为 workbook 之前的正式前置阶段。
+
+## ADR-2026-03-20-12：Extract Runtime Policy 采用分段预算与三档运行配置
+
+- Status：Accepted
+- Context：runtime contract 已完成最小实现，但旧日志继续证明 extract 运行时间分布差异很大。`logger/log_15202603_1005.txt` 出现最长 `99s` 轮询等待，`logger/log_12202603_0850.txt` 和 `logger/log_17202601_0818.txt` 也分别出现 `72s`、`71s`；同时 `logger/log_21202601_0818.txt`、`logger/log_21202601_1356.txt`、`logger/log_07202603_0850.txt` 还出现 `66 x 219336`、`70 x 215501` 等大表样本。若继续使用单一 extract polling 预算，要么误杀重任务，要么把轻任务全部放宽。
+- Decision：extract runtime policy 采用 `submit / poll / download` 三段分离预算，并在外层增加 extract 总时限；同时引入 `fast / standard / heavy` 三档 runtime profile。profile 由 `extract template` 提供默认值，`run batch` 可做运行时 override，默认档位为 `standard`。
+- Consequences：
+  - bootstrap settings 必须从单一 `extract_polling` 升级为 profile-aware 结构。
+  - manifest 必须记录模板默认 profile、实际生效 profile 与三段运行证据。
+  - `PROCESSING` 等正常轮询状态不消耗错误重试预算；只有瞬时网络错误才进入有限重试。
+  - 后续调参优先围绕 profile，而不是在各处散落修改 timeout 数字。
+
+## ADR-2026-03-21-13：Workbook v1 采用受约束块写入与双平面执行
+
+- Status：Accepted
+- Context：用户确认 workbook 的真实目标是“把每日 extract 数据写回模板底表，保留结构，触发计算”，而当前目标区域大多数是普通 `sheet` 区块，不是 `Excel Table / Named Range`。同时 legacy 证据继续表明：锚点内范围识别是有效经验，但大表默认经由 `xlwings` / COM 批量写入已经在真实日志中失稳。
+- Decision：workbook v1 采用 `受约束块写入` 模型。每个目标区块显式声明 `sheet_name + start_row/start_col + write_mode + clear_policy + post_write_actions`，支持 `replace_sheet / replace_range / append_rows` 三种写入模式；默认语义为“清值不清结构”。默认数据平面采用 file-based writer，Excel / COM 只承担 calculation plane，不作为默认大块数据写入平面。
+- Consequences：
+  - workbook v1 边界固定为 `1 job -> 1 template workbook -> 1 result workbook`。
+  - 智能识别只允许发生在 block 显式边界内，不允许全表自由猜测。
+- 写后派生动作第一版固定支持 `fill_down_formula` 与 `fill_fixed_value`。
+- 公式下拉必须以最终真实写入行段为准，且覆盖不足时稳定失败。
+- 尺寸护栏继续保留，超阈值默认阻断，不自动把大表切回 COM 批量直写。
+
+## ADR-2026-03-21-14：Publish v1 采用受约束 workbook-to-Feishu 映射与 value-only 发布
+
+- Status：Accepted
+- Context：workbook stage 已完成后，用户明确 publish 的真实业务不是“把结果 workbook 整本上传”，而是将一个结果 workbook 中的多个计算表或结果区块，映射到飞书一个或多个 spreadsheet 下的多个子表。用户同时确认：publish 源侧需要同时支持整张计算表与固定区块，目标侧需要同时支持整表覆盖、指定范围覆盖和追加；飞书侧写入的是值，不是公式；大多数日报场景应保留飞书目标结构，只更新值。
+- Decision：publish v1 采用“显式 `publish source + publish target` 契约，中间保留标准化 `publish dataset`”的模型。source 支持 `sheet / block` 两种读取方式，target 支持 `replace_sheet / replace_range / append_rows` 三种写入方式。默认 `header_mode=exclude`，默认只写值不写公式，默认不自动创建飞书子表。publish 的最小执行与诊断单元是 `mapping`，而不是整个 job。
+- Consequences：
+  - publish 需要新增独立的 contract、source reader、target resolver、chunk writer 与 mapping 级 manifest。
+  - publish 不会回头要求 workbook 先产出 publish-specific outputs，而是在 publish 阶段自行从结果 workbook 读取值并标准化。
+  - `append_rows` 默认不视为安全重跑操作；同一 batch / 同一 mapping / 同一目标的追加式重跑默认阻断。
+  - 空数据默认采用 `empty_source_policy=skip`，不默认把空结果解释成“清空飞书目标”。

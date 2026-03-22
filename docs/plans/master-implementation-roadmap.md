@@ -1,10 +1,16 @@
 # 观远 BI 自动化套件主实施路线图
 
 > 状态：Active
-> 最近更新：2026-03-19
+> 最近更新：2026-03-22
 > 当前执行明细：
 > - `docs/plans/2026-03-19-from-scratch-guanbi-automation-implementation-plan.md`
 > - `docs/plans/2026-03-19-runtime-contract-implementation-plan.md`
+> - `docs/plans/2026-03-20-extract-runtime-policy-design.md`
+> - `docs/plans/2026-03-20-extract-runtime-policy-implementation-plan.md`
+> - `docs/plans/2026-03-21-workbook-detailed-design.md`
+> - `docs/plans/2026-03-21-workbook-stage-implementation-plan.md`
+> - `docs/plans/2026-03-21-publish-stage-detailed-design.md`
+> - `docs/plans/2026-03-21-publish-stage-implementation-plan.md`
 
 ## 1. 实施总原则
 
@@ -110,7 +116,8 @@
 - preflight service
 - pipeline engine
 - extract stage
-- 任务轮询预算模型
+- extract runtime profile（`fast / standard / heavy`）
+- `submit / poll / download` 分段预算与 extract 总时限
 - 超时 / SSL / 连接错误分类与重试策略
 - batch 级归档
 - 失败态 manifest
@@ -122,6 +129,7 @@
 - 多 job 同批次 extract-only 可运行
 - 失败运行也能留下可诊断归档
 - 轮询不会因无限等待或无分类异常而卡死
+- 慢任务可通过更重的 runtime profile 放宽预算，而不必放宽全部 extract
 
 ## 7. Phase 5：本地 Web 控制台
 
@@ -151,9 +159,10 @@
 
 - workbook ingest stage
 - workbook transform stage
-- Excel 规则模型
-- writer engine 抽象
+- 受约束 block 写入模型
+- file-based writer + calculation runner 双平面
 - 行数 / 列数 / 单元格总量护栏
+- 辅助列公式下拉与固定列补值
 - workbook 归档结构
 - COM 异常和大表写入错误分类
 
@@ -171,8 +180,11 @@
 **关键交付物**
 
 - Feishu adapter
+- publish mapping contract
+- publish dataset 标准层
 - publish stage
 - 批量写入器
+- mapping 级 manifest
 - 发布摘要归档
 
 **退出条件**
@@ -225,6 +237,7 @@
 - 把任务轮询继续写成无限循环，缺少超时预算、错误分类和重试边界。
 - 把 workbook 大表直接交给 Excel COM 批量写入，没有尺寸护栏和回退策略。
 - 在 runtime contract 未锁定前就提前展开 workbook 细节设计，导致阶段护栏、日志字段和错误语义后续返工。
+- 把追加式 publish 当成天然幂等操作，导致日更报表重复追加。
 
 ## 13. 文档更新规则
 
@@ -237,10 +250,26 @@
 
 ## 14. 当前恢复点
 
-截至 2026-03-19，当前执行入口已经收敛为：
+截至 2026-03-22，当前执行状态已经更新为：
 
-1. 先按 `docs/plans/2026-03-19-runtime-contract-and-stage-gating-design.md` 继续收敛运行契约边界
-2. 再按 `docs/plans/2026-03-19-runtime-contract-implementation-plan.md` 从 Task 1 开始落地
-3. 运行契约稳定后，再进入 workbook detailed design
-
-当前不建议跳过 runtime contract 直接进入 workbook 实现或 workbook 细化编码。
+1. `runtime contract` 已完成并通过全量测试验证。
+2. `extract runtime policy` 已按 `docs/plans/2026-03-20-extract-runtime-policy-implementation-plan.md` 完成 Task 1-7，并通过全量测试验证。
+3. `workbook detailed design` 与 `docs/plans/2026-03-21-workbook-stage-implementation-plan.md` 已完成，并通过 focused verification 与 full suite 验证。
+4. `publish stage detailed design` 与 `docs/plans/2026-03-21-publish-stage-implementation-plan.md` 已完成设计收敛并写回主文档、决策日志与会话归档。
+5. `publish stage implementation` 已在隔离 worktree `D:\get_bi_data__1\.worktrees\publish-stage-task1` 内完成 Task 1-5：
+   - Task 1 publish contract 与默认配置
+   - Task 2 workbook publish source reader
+   - Task 3 feishu target planner（含显式目标边界校验修复）
+   - Task 4 feishu sheets client adapter
+   - Task 5 publish stage 与 mapping-level manifest
+6. Task 1-5 的最近 focused verification 已达到：
+   - `tests/infrastructure/feishu/test_target_planner.py tests/infrastructure/feishu/test_client.py` -> `13 passed`
+   - `tests/domain/test_publish_contract.py tests/bootstrap/test_settings.py tests/infrastructure/excel/test_publish_source_reader.py tests/infrastructure/feishu/test_target_planner.py tests/infrastructure/feishu/test_client.py tests/execution/test_publish_stage.py tests/execution/test_extract_stage.py tests/execution/test_workbook_transform_stage.py` -> `37 passed`
+7. 当前下一恢复点前移为：
+   - 按 `docs/plans/2026-03-21-publish-stage-implementation-plan.md`
+   - 从 Task 6 开始继续：`publish gate + pipeline wiring + README/status update`
+   - 然后执行 Task 7：focused verification、full suite、最终实现归档
+8. 在进入下一阶段时，仍然不允许：
+   - 回到 legacy `src/`
+   - 把 extract runtime policy 退回单一 `extract_polling`
+   - 跳过 publish implementation plan，直接发散 publish 编码

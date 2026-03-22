@@ -12,7 +12,11 @@ from guanbi_automation.execution.stage_gates import (
 
 def run_stage_preflight(stage_name: str, **kwargs: Any) -> StageGateDecision:
     if stage_name == "extract":
-        return evaluate_extract_gate(policy=kwargs.get("policy"))
+        return evaluate_extract_gate(
+            policy=kwargs.get("policy"),
+            profile_name=kwargs.get("profile_name"),
+            available_profiles=kwargs.get("available_profiles"),
+        )
     if stage_name == "workbook":
         return evaluate_workbook_gate(
             row_count=kwargs.get("row_count", 0),
@@ -21,7 +25,11 @@ def run_stage_preflight(stage_name: str, **kwargs: Any) -> StageGateDecision:
             template_path=kwargs.get("template_path"),
         )
     if stage_name == "publish":
-        return evaluate_publish_gate(target_ready=kwargs.get("target_ready", False))
+        return evaluate_publish_gate(
+            target_ready=kwargs.get("target_ready", False),
+            workbook_path=kwargs.get("workbook_path"),
+            mapping_count=kwargs.get("mapping_count", 0),
+        )
 
     return StageGateDecision(
         status="blocked",

@@ -4,6 +4,7 @@
 .pytest_cache/
 .uv-cache/
 .vscode/
+.worktrees/
 __pycache__/
 *.pyc
 
