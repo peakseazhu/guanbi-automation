@@ -121,6 +121,7 @@ def test_chunk_publish_rows_splits_dataset_by_row_limit():
         [["c", 3]],
     ]
 
+
 def test_replace_range_rejects_explicit_bounds_smaller_than_dataset_shape():
     dataset = PublishDataset(
         rows=[["x", 1], ["y", 2]],

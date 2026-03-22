@@ -256,20 +256,26 @@
 2. `extract runtime policy` 已按 `docs/plans/2026-03-20-extract-runtime-policy-implementation-plan.md` 完成 Task 1-7，并通过全量测试验证。
 3. `workbook detailed design` 与 `docs/plans/2026-03-21-workbook-stage-implementation-plan.md` 已完成，并通过 focused verification 与 full suite 验证。
 4. `publish stage detailed design` 与 `docs/plans/2026-03-21-publish-stage-implementation-plan.md` 已完成设计收敛并写回主文档、决策日志与会话归档。
-5. `publish stage implementation` 已在隔离 worktree `D:\get_bi_data__1\.worktrees\publish-stage-task1` 内完成 Task 1-5：
+5. `publish stage implementation` 已在隔离 worktree `D:\get_bi_data__1\.worktrees\publish-stage-task1` 内完成 Task 1-7：
    - Task 1 publish contract 与默认配置
    - Task 2 workbook publish source reader
    - Task 3 feishu target planner（含显式目标边界校验修复）
    - Task 4 feishu sheets client adapter
    - Task 5 publish stage 与 mapping-level manifest
-6. Task 1-5 的最近 focused verification 已达到：
-   - `tests/infrastructure/feishu/test_target_planner.py tests/infrastructure/feishu/test_client.py` -> `13 passed`
-   - `tests/domain/test_publish_contract.py tests/bootstrap/test_settings.py tests/infrastructure/excel/test_publish_source_reader.py tests/infrastructure/feishu/test_target_planner.py tests/infrastructure/feishu/test_client.py tests/execution/test_publish_stage.py tests/execution/test_extract_stage.py tests/execution/test_workbook_transform_stage.py` -> `37 passed`
-7. 当前下一恢复点前移为：
-   - 按 `docs/plans/2026-03-21-publish-stage-implementation-plan.md`
-   - 从 Task 6 开始继续：`publish gate + pipeline wiring + README/status update`
-   - 然后执行 Task 7：focused verification、full suite、最终实现归档
+   - Task 6 publish gate + preflight + pipeline engine wiring + README update
+   - Task 7 focused verification + full suite + final implementation archive
+6. 当前 publish implementation 的最近验证证据已达到：
+   - `tests/domain/test_publish_contract.py tests/bootstrap/test_settings.py tests/infrastructure/excel/test_publish_source_reader.py tests/infrastructure/feishu/test_target_planner.py tests/infrastructure/feishu/test_client.py tests/execution/test_publish_stage.py tests/execution/test_stage_gates.py` -> `46 passed`
+   - `tests` -> `86 passed`
+7. 当前恢复点前移为：
+   - `publish stage implementation` 已完成
+   - 当前分支为 `publish-stage-task1`
+   - 当前最新提交为 `13259ce docs: archive publish stage implementation results`
+   - 下一阶段优先进入：
+     - publish 真实样本验证
+     - publish hardening / retry budget 与 chunk 默认值收敛
+     - finishing / merge 决策
 8. 在进入下一阶段时，仍然不允许：
    - 回到 legacy `src/`
    - 把 extract runtime policy 退回单一 `extract_polling`
-   - 跳过 publish implementation plan，直接发散 publish 编码
+   - 绕开三层文档治理直接推进未归档实现

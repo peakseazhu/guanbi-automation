@@ -281,4 +281,3 @@ def test_publish_stage_uses_failed_error_as_job_final_error_when_mixed_with_bloc
     assert result.manifest["final_error"]["code"] == RuntimeErrorCode.PUBLISH_WRITE_ERROR
 
 
-
