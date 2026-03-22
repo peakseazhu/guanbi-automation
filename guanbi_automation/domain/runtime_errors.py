@@ -30,3 +30,4 @@ class RuntimeErrorCode(StrEnum):
     PUBLISH_SOURCE_READ_ERROR = "publish_source_read_error"
     PUBLISH_WRITE_ERROR = "publish_write_error"
     PUBLISH_APPEND_RERUN_BLOCKED = "publish_append_rerun_blocked"
+    PUBLISH_READBACK_MISMATCH = "publish_readback_mismatch"
