@@ -7,6 +7,8 @@ import httpx
 from guanbi_automation.domain.runtime_contract import RuntimeErrorInfo
 from guanbi_automation.domain.runtime_errors import RuntimeErrorCode
 
+JSON_CONTENT_TYPE = "application/json; charset=utf-8"
+
 
 class PublishClientError(Exception):
     def __init__(self, operation_name: str, error: RuntimeErrorInfo) -> None:
@@ -44,8 +46,42 @@ class FeishuSheetsClient:
                     message="Feishu response is missing data.sheets",
                     retryable=False,
                 ),
-            )
+        )
         return data["sheets"]
+
+    def fetch_tenant_access_token(
+        self,
+        app_id: str,
+        app_secret: str,
+    ) -> dict[str, Any]:
+        response = self._client.post(
+            "/open-apis/auth/v3/tenant_access_token/internal",
+            headers=_json_headers(),
+            json={
+                "app_id": app_id,
+                "app_secret": app_secret,
+            },
+        )
+        return _parse_success_payload("fetch_tenant_access_token", response)
+
+    def read_values(
+        self,
+        *,
+        spreadsheet_token: str,
+        range_string: str,
+        tenant_access_token: str,
+        value_render_option: str = "ToString",
+        date_time_render_option: str = "FormattedString",
+    ) -> dict[str, Any]:
+        response = self._client.get(
+            f"/open-apis/sheets/v2/spreadsheets/{spreadsheet_token}/values/{range_string}",
+            headers=_json_headers(tenant_access_token),
+            params={
+                "valueRenderOption": value_render_option,
+                "dateTimeRenderOption": date_time_render_option,
+            },
+        )
+        return _parse_success_payload("read_values", response)
 
     def write_values(
         self,
@@ -61,6 +97,20 @@ class FeishuSheetsClient:
             json={"valueRange": {"range": range_string, "values": rows}},
         )
         return _parse_success_payload("write_values", response)
+
+    def write_values_batch(
+        self,
+        *,
+        spreadsheet_token: str,
+        value_ranges: list[dict[str, object]],
+        tenant_access_token: str,
+    ) -> dict[str, Any]:
+        response = self._client.post(
+            f"/open-apis/sheets/v2/spreadsheets/{spreadsheet_token}/values_batch_update",
+            headers=_json_headers(tenant_access_token),
+            json={"valueRanges": value_ranges},
+        )
+        return _parse_success_payload("write_values_batch", response)
 
 
 def map_feishu_error(operation_name: str, response: httpx.Response) -> RuntimeErrorInfo:
@@ -81,7 +131,7 @@ def map_feishu_error(operation_name: str, response: httpx.Response) -> RuntimeEr
     elif response.status_code == 404:
         error_code = RuntimeErrorCode.PUBLISH_TARGET_MISSING
         retryable = False
-    elif operation_name == "write_values" and (
+    elif operation_name in {"write_values", "write_values_batch", "read_values"} and (
         response.status_code == 400 or "range" in normalized_message
     ):
         error_code = RuntimeErrorCode.PUBLISH_RANGE_INVALID
@@ -103,7 +153,14 @@ def map_feishu_error(operation_name: str, response: httpx.Response) -> RuntimeEr
 
 
 def _auth_headers(tenant_access_token: str) -> dict[str, str]:
-    return {"Authorization": f"Bearer {tenant_access_token}"}
+    return _json_headers(tenant_access_token)
+
+
+def _json_headers(tenant_access_token: str | None = None) -> dict[str, str]:
+    headers = {"Content-Type": JSON_CONTENT_TYPE}
+    if tenant_access_token:
+        headers["Authorization"] = f"Bearer {tenant_access_token}"
+    return headers
 
 
 def _parse_success_payload(operation_name: str, response: httpx.Response) -> dict[str, Any]:
