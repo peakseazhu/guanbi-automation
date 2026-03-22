@@ -1,7 +1,7 @@
 # 观远 BI 自动化套件主实施路线图
 
 > 状态：Active
-> 最近更新：2026-03-21
+> 最近更新：2026-03-22
 > 当前执行明细：
 > - `docs/plans/2026-03-19-from-scratch-guanbi-automation-implementation-plan.md`
 > - `docs/plans/2026-03-19-runtime-contract-implementation-plan.md`
@@ -11,6 +11,7 @@
 > - `docs/plans/2026-03-21-workbook-stage-implementation-plan.md`
 > - `docs/plans/2026-03-21-publish-stage-detailed-design.md`
 > - `docs/plans/2026-03-21-publish-stage-implementation-plan.md`
+> - `docs/plans/2026-03-22-mainline-validation-governance-design.md`
 
 ## 1. 实施总原则
 
@@ -250,18 +251,30 @@
 
 ## 14. 当前恢复点
 
-截至 2026-03-21，当前执行状态已经更新为：
+截至 2026-03-22，当前执行状态已经更新为：
 
 1. `runtime contract` 已完成并通过全量测试验证。
 2. `extract runtime policy` 已按 `docs/plans/2026-03-20-extract-runtime-policy-implementation-plan.md` 完成 Task 1-7，并通过全量测试验证。
-3. `workbook detailed design` 已完成，并已写回主文档、决策日志与会话归档。
-4. `docs/plans/2026-03-21-workbook-stage-implementation-plan.md` 已完成，并通过 focused verification 与 full suite 验证。
-5. `publish stage detailed design` 已完成，并已写回主文档、决策日志与会话归档。
-6. `docs/plans/2026-03-21-publish-stage-implementation-plan.md` 已创建。
-7. 当前下一恢复点前移为：
-   - 按 `docs/plans/2026-03-21-publish-stage-implementation-plan.md`
-   - 从 Task 1 开始按 TDD 执行
-8. 在进入下一阶段时，仍然不允许：
+3. `workbook detailed design` 与 `docs/plans/2026-03-21-workbook-stage-implementation-plan.md` 已完成，并通过 focused verification 与 full suite 验证。
+4. `publish stage detailed design` 与 `docs/plans/2026-03-21-publish-stage-implementation-plan.md` 已完成设计收敛。
+5. `publish foundation` 已从 `publish-stage-task1` worktree 萃取并进入 `main`，当前主线已包含：
+   - publish contract
+   - publish source reader
+   - feishu target planner
+   - feishu sheets client adapter
+   - publish stage
+   - publish runtime wiring
+6. 主线当前治理规则固定为：
+   - `main` 只保留稳定阶段成果
+   - 真实资源落地验证留在独立验证线推进
+7. 当前验证线为：
+   - `publish-stage-task1`
+   - 继续承担 `publish live verification`
+8. 当前主线下一恢复点为：
+   - 保持 `main` 在 publish foundation 稳定状态
+   - 等待验证线完成真实样本写入 / 读回 / comparison evidence
+   - 再按证据决定是否提升 live verification 相关成果
+9. 在进入下一阶段时，仍然不允许：
    - 回到 legacy `src/`
    - 把 extract runtime policy 退回单一 `extract_polling`
-   - 跳过 publish implementation plan，直接发散 publish 编码
+   - 把未完成真实证据收口的验证层内容直接并入 `main`

@@ -144,3 +144,13 @@
   - publish 不会回头要求 workbook 先产出 publish-specific outputs，而是在 publish 阶段自行从结果 workbook 读取值并标准化。
   - `append_rows` 默认不视为安全重跑操作；同一 batch / 同一 mapping / 同一目标的追加式重跑默认阻断。
   - 空数据默认采用 `empty_source_policy=skip`，不默认把空结果解释成“清空飞书目标”。
+
+## ADR-2026-03-22-15：采用“稳定主线 + 验证推进线”双轨治理
+
+- Status：Accepted
+- Context：`publish-stage-task1` worktree 已经同时包含 `publish foundation` 的正式实现和 `publish live verification` 的真实落地验证层。如果整条验证线直接并回主线，会把尚未完成真实样本证据收口的探索内容一起带入 `main`；如果完全不萃取，又会让主线长期落后于已经稳定的阶段实现。
+- Decision：采用“稳定主线 + 验证推进线”双轨治理。`main` 只接收已通过 fresh automated verification、且不依赖未完成真实资源试跑的阶段 foundation；worktree / feature branch 继续承担 live verification、真实资源边界摸底和证据归档。验证线成果只有在真实证据与边界收敛后，才允许再次萃取进主线。
+- Consequences：
+  - 阶段实现从此区分为 `foundation` 和 `live verification` 两层，而不是把所有内容混为一个“完成/未完成”状态。
+  - 当前 `publish foundation` 已萃取进 `main`，而 `publish live verification` 继续留在 `publish-stage-task1`。
+  - 后续其它阶段也默认优先把稳定 foundation 进入主线，再由验证线继续向真实资源推进。
