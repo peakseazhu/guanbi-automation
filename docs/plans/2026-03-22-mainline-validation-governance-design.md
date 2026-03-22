@@ -6,6 +6,7 @@
 > - `docs/plans/master-implementation-roadmap.md`
 > - `docs/archive/decision-log.md`
 > - `docs/plans/2026-03-21-publish-stage-implementation-plan.md`
+> - `docs/plans/2026-03-22-repository-state-and-recovery-design.md`
 
 ## 1. 背景
 
@@ -75,10 +76,12 @@
 以下内容继续留在验证线，不直接进入 `main`：
 
 - publish live verification design
-- publish live verification implementation
+- publish live verification spec 与本地 real-sample spec
+- Feishu readback / batch write support
+- publish live verification service
+- real-sample entrypoint
 - 真实 workbook -> Feishu target 的写入/读回验证入口
-- 本地 live verification spec
-- 真实样本运行证据与 readback comparison
+- 真实样本运行足迹与最终 evidence archive
 
 ## 5. 提升规则
 
@@ -101,3 +104,15 @@
   - foundation 先进主线
   - live verification 在验证线先跑到底
 
+同时固定以下恢复规则：
+
+- 主线恢复时，先读 `master` 文档与最新状态对账文档，不直接从旧 session archive 起步
+- 验证线恢复时，先读主线权威文档，再读该验证线自己的最新设计、计划和归档
+- 旧归档保持不可变，只作为历史证据，不静默改写
+- 验证线状态必须区分“代码/本地 spec 已到位”“已有运行足迹”“已形成有效 evidence archive”三种层次；空目录不等于收口完成
+
+当前补充事实为：
+
+- `publish-stage-task1` 已具备 live verification spec、Feishu readback / batch write support、service 与 real-sample entrypoint
+- `.worktrees/publish-stage-task1/config/live_verification/publish/real_sample.local.yaml` 已锁定真实 workbook/source/target
+- `.worktrees/publish-stage-task1/runs/live_verification/publish/20260322T054012Z` 已存在运行足迹目录，但仍为空，因此当前仍不构成可复查 evidence archive

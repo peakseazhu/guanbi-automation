@@ -1,11 +1,13 @@
 # 观远 BI 自动化套件主设计文档
 
 > 状态：Active
-> 最近更新：2026-03-19
+> 最近更新：2026-03-22
 > 当前权威文档：
 > - `docs/plans/master-system-design.md`
 > - `docs/plans/master-implementation-roadmap.md`
 > - `docs/archive/decision-log.md`
+> - `docs/plans/2026-03-22-mainline-validation-governance-design.md`
+> - `docs/plans/2026-03-22-repository-state-and-recovery-design.md`
 
 ## 1. 文档治理规则
 
@@ -17,11 +19,26 @@
 
 同时明确以下原则：
 
-- 所有规划文档本质上都是历史记录，只是记录某一时点的最优判断。
+- 除当前列出的权威文档外，其余规划文档默认按历史记录处理；即使是权威文档，也只是记录某一时点的最优判断。
 - `master` 文档不是永久真理，只是“当前全局最优的工作版本”。
 - 任何新的真实验证结果、实现阻力、边界变化，都必须反向审视当前 `master` 文档是否仍是全局最优。
 - 发现更优路径时，必须更新 `master` 文档、追加 `decision-log`，并保留旧判断作为可追溯历史，而不是静默覆盖。
 - 任何重大架构取舍在进入 `master` 前，至少要完成一次证据对比（历史抓包、日志、样本、已有验证记录）或一次最小 spike 测试。
+
+### 1.1 当前恢复入口规则
+
+从 2026-03-22 起，文档恢复入口固定为：
+
+1. 先读 `master` 文档与 `decision-log`
+2. 再读最新状态对账文档
+3. 最后才按需要翻 `sessions` 历史归档
+
+同时明确：
+
+- `sessions` 文档默认是历史现场记录，不自动等于当前现状
+- worktree 下的文档只对该验证线直接生效，不能替代主线权威文档
+- `README.md` 是恢复导航入口，不单独替代 `master` 文档、`decision-log` 和最新状态对账文档
+- 历史归档保持不可变；若当前事实发生变化，应新增对账文档或更新 `master`，而不是改写旧归档
 
 ## 2. 不可违背的项目边界
 

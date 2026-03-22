@@ -12,6 +12,7 @@
 > - `docs/plans/2026-03-21-publish-stage-detailed-design.md`
 > - `docs/plans/2026-03-21-publish-stage-implementation-plan.md`
 > - `docs/plans/2026-03-22-mainline-validation-governance-design.md`
+> - `docs/plans/2026-03-22-repository-state-and-recovery-design.md`
 
 ## 1. 实施总原则
 
@@ -270,11 +271,43 @@
 7. 当前验证线为：
    - `publish-stage-task1`
    - 继续承担 `publish live verification`
+   - 最近提交为：`350b903 feat: add publish live verification entry`
+   - 当前已完成 live verification 设计与代码路径：
+      - spec / local spec
+      - Feishu readback / batch write support
+      - live verification service
+      - real-sample entrypoint
+   - 当前本地 spec 已锁定真实 workbook/source/target
+   - `runs/live_verification/publish/20260322T054012Z` 已存在运行足迹目录，但仍为空
+   - 空的时间戳目录只算运行足迹，不算有效 evidence archive
+   - 当前从本 shell fresh 重跑 full suite 仍被环境漂移阻塞：
+      - `feishu-broadcast` env 缺 `pytest`
+      - `.venv + .packages` 缺 `openpyxl` / `xlwings`
+   - 当前仍缺 live verification Task 5 的真实写入 / 读回 / comparison evidence 与最终 implementation archive
 8. 当前主线下一恢复点为：
    - 保持 `main` 在 publish foundation 稳定状态
-   - 等待验证线完成真实样本写入 / 读回 / comparison evidence
+   - 等待验证线完成真实样本写入 / 读回 / comparison evidence 与 implementation archive
    - 再按证据决定是否提升 live verification 相关成果
-9. 在进入下一阶段时，仍然不允许：
+9. 当前验证线下一恢复点为：
+   - 先恢复可执行验证环境，使 focused verification 与 full suite 可以重新运行
+   - 运行 live verification focused verification
+   - 执行 real sample 写入 / 读回 / comparison
+   - 形成完整 evidence archive
+   - 补写最终 implementation archive
+10. 在进入下一阶段时，仍然不允许：
    - 回到 legacy `src/`
    - 把 extract runtime policy 退回单一 `extract_polling`
    - 把未完成真实证据收口的验证层内容直接并入 `main`
+
+## 15. 恢复阅读顺序
+
+未来任何新会话在真正动手前，固定阅读顺序为：
+
+1. `README.md`
+2. `docs/plans/master-system-design.md`
+3. `docs/plans/master-implementation-roadmap.md`
+4. `docs/archive/decision-log.md`
+5. `docs/plans/2026-03-22-mainline-validation-governance-design.md`
+6. `docs/plans/2026-03-22-repository-state-and-recovery-design.md`
+7. 当前工作线的最新 session archive
+8. 对应阶段的 design / implementation plan

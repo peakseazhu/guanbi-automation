@@ -154,3 +154,27 @@
   - 阶段实现从此区分为 `foundation` 和 `live verification` 两层，而不是把所有内容混为一个“完成/未完成”状态。
   - 当前 `publish foundation` 已萃取进 `main`，而 `publish live verification` 继续留在 `publish-stage-task1`。
   - 后续其它阶段也默认优先把稳定 foundation 进入主线，再由验证线继续向真实资源推进。
+
+## ADR-2026-03-22-16：中断恢复优先从权威文档和最新状态对账入口进入
+
+- Status：Accepted
+- Context：仓库已经历多轮中断与恢复，且 `main` 与验证线分别承担不同职责。部分 `session archive` 记录的是当时现场状态，例如 dirty worktree、待补提交、当时下一步等；如果后续恢复直接从这些历史归档起步，容易把历史现场误读成当前现状。
+- Decision：中断恢复时固定采用“权威文档 -> 最新状态对账文档 -> 历史归档”的阅读顺序。历史归档保持不可变，不回写修正；当当前事实发生变化时，通过更新 `master`、`decision-log` 和新增状态对账文档来表达最新现状。
+- Consequences：
+  - 后续恢复入口不再依赖单个旧 `session archive`。
+  - 主线与验证线的当前状态都会优先写入权威文档和最新对账文档。
+  - 历史归档继续保留完整演化轨迹，满足回滚和回溯需要。
+
+## ADR-2026-03-22-17：验证线状态必须区分代码到位、运行足迹与有效证据归档
+
+- Status：Accepted
+- Context：`publish live verification` 当前已经具备 spec、readback support、service、entrypoint 与本地 real-sample spec，且 `runs/live_verification/publish/20260322T054012Z` 已出现时间戳目录。但该目录仍为空，也没有最终 `implementation archive`。如果后续文档把这种状态写成“尚未开始”，会低估已完成工作；如果写成“已完成验证”，又会把空目录误判成有效证据归档。
+- Decision：从 2026-03-22 起，所有验证线状态说明都必须显式区分三层事实：
+  1. 代码/本地 spec 是否已经到位
+  2. 是否已经出现运行足迹
+  3. 是否已经形成可复查的 evidence archive 与最终 session archive
+  空目录或缺关键 JSON 文件的时间戳目录，只能算运行足迹，不能算验证闭环完成。
+- Consequences：
+  - 后续主线文档不再使用“没有任何运行痕迹”来描述这类状态。
+  - 验证线是否可晋升到 `main`，必须同时看真实写入/读回/comparison 结果和归档是否完整。
+  - 状态对账文档需要同时记录“已经实现到哪里”和“证据收口到哪里”。
