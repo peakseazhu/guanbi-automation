@@ -2,6 +2,25 @@
 
 从 0 构建的观远 BI 自动化套件当前已完成 runtime contract、extract runtime policy、workbook foundation 与 publish foundation。主线 `main` 只保留稳定阶段成果；真实资源落地验证继续在独立验证线推进。
 
+## Recovery Entry
+
+未来任何新会话恢复时，固定按以下顺序进入：
+
+1. `README.md`
+2. `docs/plans/master-system-design.md`
+3. `docs/plans/master-implementation-roadmap.md`
+4. `docs/archive/decision-log.md`
+5. `docs/plans/2026-03-22-mainline-validation-governance-design.md`
+6. `docs/plans/2026-03-22-repository-state-and-recovery-design.md`
+7. 当前工作线的最新 session archive
+8. 对应阶段的 design / implementation plan
+
+当前恢复时还必须同时记住：
+
+- `main` 是稳定基线
+- `.worktrees/publish-stage-task1` 是 publish live verification 验证线，不替代主线权威文档
+- 验证线当前虽然已经具备 live verification 代码路径与本地 real-sample spec，但 `runs/live_verification/publish/20260322T054012Z` 仍为空目录，不能当成验证完成证据
+
 ## Runtime Contract Baseline
 
 - `doctor`：通过 `guanbi_automation.application.doctor_service.run_doctor(...)` 返回结构化 `DoctorReport`
