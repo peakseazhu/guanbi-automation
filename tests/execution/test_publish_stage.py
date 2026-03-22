@@ -8,6 +8,7 @@ from guanbi_automation.domain.publish_contract import (
 )
 from guanbi_automation.domain.runtime_contract import RuntimeErrorInfo
 from guanbi_automation.domain.runtime_errors import RuntimeErrorCode
+from guanbi_automation.execution.pipeline_engine import PipelineEngine
 from guanbi_automation.execution.stages.publish import (
     PlannedPublishRun,
     PublishStage,
@@ -121,6 +122,32 @@ def test_publish_stage_blocks_append_rerun_before_write(tmp_path: Path):
     assert target_writer_calls == []
 
 
+def test_pipeline_engine_delegates_to_publish_stage(tmp_path: Path):
+    workbook_path = tmp_path / "result.xlsx"
+    workbook_path.write_bytes(b"placeholder")
+
+    stage = PublishStage(
+        source_reader=lambda *_args, **_kwargs: _dataset(rows=[]),
+        target_loader=lambda *_args, **_kwargs: _target_context(),
+        target_writer=lambda *_args, **_kwargs: _write_result(chunk_count=0, written_row_count=0),
+    )
+    engine = PipelineEngine(
+        extract_stage=_extract_stage_stub(),
+        publish_stage=stage,
+    )
+
+    result = engine.run_publish(
+        PlannedPublishRun(
+            batch_id="batch-001",
+            job_id="job-001",
+            workbook_path=workbook_path,
+            mappings=[],
+        )
+    )
+
+    assert result.manifest["stage_name"] == "publish"
+
+
 def _mapping_spec(
     *,
     mapping_id: str = "mapping-001",
@@ -193,6 +220,16 @@ def _write_result(
         partial_write=partial_write,
         final_error=final_error,
     )
+
+
+class _ExtractStageStub:
+    def run(self, planned_run):
+        return planned_run
+
+
+def _extract_stage_stub() -> _ExtractStageStub:
+    return _ExtractStageStub()
+
 
 def test_publish_stage_uses_failed_error_as_job_final_error_when_mixed_with_blocked(tmp_path: Path):
     workbook_path = tmp_path / "result.xlsx"

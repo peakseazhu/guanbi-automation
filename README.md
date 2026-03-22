@@ -1,6 +1,6 @@
 # Guanbi Automation
 
-从 0 构建的观远 BI 自动化套件当前先落 runtime contract 基线，再继续 extract-only 与 workbook foundation。
+从 0 构建的观远 BI 自动化套件当前已完成 runtime contract、extract runtime policy、workbook foundation，并进入 publish foundation 的 runtime wiring 收口阶段。
 
 ## Runtime Contract Baseline
 
@@ -33,6 +33,24 @@
 - Excel / COM 只负责 `workbook_transform` 的 calculation plane
 - workbook manifest 会记录 block 写入范围、action evidence 和 calculation 结果
 
+## Publish Stage Foundation
+
+当前 publish foundation 已覆盖：
+
+- `PublishSourceSpec`、`PublishTargetSpec`、`PublishMappingSpec`
+- workbook value-only source reader
+- Feishu target planner 与 chunk helpers
+- Feishu Sheets client adapter
+- mapping-level publish manifest
+- `publish` execution stage
+
+其中：
+
+- publish 只消费 result workbook 的值，不上传公式
+- target 支持 `replace_sheet`、`replace_range`、`append_rows`
+- `append_rows` 重跑默认阻断，不视为天然幂等
+- publish gate 会在进入阶段前校验 workbook、mapping 数量与 target readiness
+
 ## Current Verification
 
 当前已覆盖：
@@ -46,3 +64,4 @@
 - stage gate evaluation
 - extract stage segmented runtime evidence
 - workbook contract, locator, loader, writer, ingest, transform foundation
+- publish contract, source reader, target planner, client adapter, stage, and runtime wiring foundation

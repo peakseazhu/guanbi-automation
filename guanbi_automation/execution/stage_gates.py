@@ -79,7 +79,35 @@ def evaluate_workbook_gate(
     )
 
 
-def evaluate_publish_gate(*, target_ready: bool) -> StageGateDecision:
+def evaluate_publish_gate(
+    *,
+    target_ready: bool,
+    workbook_path: Path | str | None = None,
+    mapping_count: int = 0,
+) -> StageGateDecision:
+    if workbook_path is None or (
+        isinstance(workbook_path, str) and not workbook_path.strip()
+    ):
+        return StageGateDecision(
+            status="blocked",
+            reason="Publish workbook is missing",
+            details={"workbook_path": workbook_path},
+        )
+
+    if not Path(workbook_path).exists():
+        return StageGateDecision(
+            status="blocked",
+            reason="Publish workbook is missing",
+            details={"workbook_path": str(workbook_path)},
+        )
+
+    if mapping_count < 1:
+        return StageGateDecision(
+            status="blocked",
+            reason="Publish mappings are missing",
+            details={"mapping_count": mapping_count},
+        )
+
     if not target_ready:
         return StageGateDecision(
             status="blocked",
