@@ -1,0 +1,10 @@
+workbook_path: D:/path/to/执行管理字段更新版.xlsx
+source_sheet_name: 全国执行
+source_start_row: 1
+source_start_col: 1
+header_mode: include
+spreadsheet_token: replace-with-existing-spreadsheet-token
+sheet_id: replace-with-temporary-sheet-id
+target_start_row: 1
+target_start_col: 1
+write_mode: replace_sheet

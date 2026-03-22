@@ -17,3 +17,7 @@ src/
 # Local one-off machine repair artifacts
 docs/archive/sessions/*hosts-backup*.txt
 tools/fix_github_hosts.ps1
+
+# Local publish live verification inputs and evidence
+config/live_verification/**/*.local.yaml
+runs/live_verification/
