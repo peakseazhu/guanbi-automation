@@ -5,6 +5,9 @@
 - `publish-hardening-promotion` 已将验证线中的 `publish hardening bundle v1` 萃取为干净的 mainline selective promotion 载体。
 - 本次 promotion 只提升主线 publish runtime 已实际消费的 hardening slice，不混入 live verification scaffold。
 - promotion 依据仍回溯到验证线的首个有效 evidence archive：`.worktrees/publish-stage-task1/runs/live_verification/publish/20260323T022511Z`，其中 `comparison.json` 已确认 `matches = true`，并证明真实样本是 `58 x 127` 宽表。
+- 当前远端分支已推送：`origin/publish-hardening-promotion`
+- 当前 clean PR 已创建：
+  - `https://github.com/peakseazhu/guanbi-automation/pull/2`
 
 ## Promotion Scope
 
@@ -111,8 +114,10 @@ $env:PYTHONPATH='D:\get_bi_data__1\.worktrees\publish-stage-task1;D:\get_bi_data
 
 - worktree：`D:\get_bi_data__1\.worktrees\publish-hardening-promotion`
 - branch：`publish-hardening-promotion`
+- commit：`82374e8 feat: promote publish hardening bundle`
+- PR：`https://github.com/peakseazhu/guanbi-automation/pull/2`
 - 当前工作应继续保持 selective promotion 边界，避免把验证线 `client.py` / `test_client.py` 整体覆盖进来
 - 下一恢复点固定为：
-  1. 复查最终 diff 与文档同步结果
-  2. 提交并推送 `publish-hardening-promotion`
-  3. 以该分支创建新的 mainline PR，而不是复用旧的 omnibus PR
+  1. 对 PR #2 做 merge 前代码审查
+  2. 若审查通过，则合并到 `main`
+  3. 合并后同步本地 `main`、清理 promotion worktree，并更新主线恢复点
