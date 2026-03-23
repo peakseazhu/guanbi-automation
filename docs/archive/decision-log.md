@@ -216,7 +216,7 @@
 
 ## ADR-2026-03-23-20：满足 ADR-19 条件后，将完整 publish hardening bundle v1 提升到 mainline promotion
 
-- Status：Accepted
+- Status：Superseded by ADR-2026-03-23-21
 - Context：`publish-stage-task1` 已形成首个有效 evidence archive `.worktrees/publish-stage-task1/runs/live_verification/publish/20260323T022511Z`，其中 `comparison.json` 已确认 `matches = true`，并证明当前真实样本是 `58 x 127`，需要按 `100 + 27` 列段写入。验证线随后完成了 `publish hardening bundle v1` 的实现收口与归档：`f268f66 feat: add publish hardening manifest surface`、`18d37da fix: infer single-range publish segments`、`b7ceea4 feat: add publish hardening writer`、`b1bca69 docs: archive publish hardening implementation`。基于该 bundle，新建 `publish-hardening-promotion` 作为干净的 selective promotion 载体，并完成 fresh verification：focused hardening suite `33 passed`、promotion branch full suite `98 passed`；验证线 full suite 同时为 `110 passed`。
 - Decision：将完整 `publish hardening bundle v1` 提升到 mainline promotion，包含：
   - `PublishSettings.chunk_column_limit`
@@ -235,3 +235,20 @@
   - `main` 的目标状态已从 `publish foundation` 升级为 `publish foundation + publish hardening bundle v1`。
   - `58 x 127` 真实宽表约束已被主线 runtime 产品化，而不是继续停留在验证线 helper。
   - validation line 继续承担 readback / comparison、真实资源目标与 live verification runtime，不因本次 promotion 被并入主线。
+
+## ADR-2026-03-23-21：主线 publish hardening 状态纠偏为 foundation primitives，并修复显式矩形边界语义
+
+- Status：Accepted
+- Context：PR #2 合入后，对 `main` 进行主线审计时发现两件事实同时成立：
+  - `PublishStage` 在 `guanbi_automation/` 内仍只有注入式接口，没有非测试 builder / bootstrap / entrypoint 真正把 `write_publish_target(...)` 接到主流程；主线当前不存在非测试 publish runtime consumer。
+  - `write_publish_target(...)` 的分段规划曾直接使用 `dataset.row_count / dataset.column_count`，会在 resolved target 已经锁定更大显式矩形时截断写入范围，导致残留单元格无法被空串覆盖。
+  这意味着，ADR-20 中“主线 publish writer 已被主流程实际消费”“真实宽表约束已被主线 runtime 产品化”的表述高于真实状态；但合入的 row/column-aware planning、batch write path、segment manifest 等 foundation primitives 仍然有保留价值。
+- Decision：
+  - 将主线当前状态从“`publish foundation + publish hardening bundle v1`”纠偏为“`publish foundation + publish hardening primitives`”。
+  - 继续保留已合入的 hardening primitives，但不再把它们写成主线 runtime 已接通。
+  - 修复 `write_publish_target(...)`，使其在 dataset 非空时按 resolved target 的完整矩形规划写入，并用空串补齐显式边界内剩余单元格。
+  - 下一次只有在主线出现明确的非测试 publish runtime consumer，并完成 fresh verification 后，才允许重新声明 runtime-connected hardening 已进入 `main`。
+- Consequences：
+  - 主线文档与恢复入口重新对齐真实状态，不再把 dormant primitives 误写成 runtime 能力。
+  - `publish_writer` 的显式边界覆盖语义被补齐，为后续真正接线保留正确基础。
+  - 验证线继续承担 live verification、readback/comparison 与后续可回灌 consumer 的收敛工作。

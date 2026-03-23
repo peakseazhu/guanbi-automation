@@ -40,11 +40,12 @@
 - extract runtime policy
 - workbook foundation
 - publish foundation
-- publish hardening bundle v1
+- publish hardening primitives
 
-最新一次已确认的主线 fresh automated verification 结果为：
+最新一次已确认的 fresh automated verification 结果为：
 
 - `PYTHONPATH='D:\get_bi_data__1;D:\get_bi_data__1\.packages' + D:\miniconda3\envs\feishu-broadcast\python.exe -m pytest tests -v -p no:cacheprovider` -> `98 passed`
+- `PYTHONPATH='D:\get_bi_data__1\.worktrees\publish-mainline-reconciliation;D:\get_bi_data__1\.packages' + D:\miniconda3\envs\feishu-broadcast\python.exe -m pytest tests -v -p no:cacheprovider` -> `99 passed`
 
 当前还必须同时记住：
 
@@ -164,9 +165,11 @@
 当前 `main` 的真实状态是：
 
 - `publish foundation` 已从验证线萃取进入主线
-- `publish hardening bundle v1` 已通过 PR #2 合入 `main`
+- `publish hardening` primitive slice 已通过 PR #2 合入 `main`
 - 主线只保留稳定阶段成果
 - 未把 `publish live verification` 的脚手架和未完成证据直接并回
+- 主线当前仍未具备非测试 `PublishStage` runtime wiring
+- 当前 corrective worktree 已补上 explicit bounded target rectangle padding regression，并通过 focused/full verification
 
 主线已经包含：
 
@@ -176,7 +179,7 @@
 - feishu sheets client adapter（含最小 `write_values_batch(...)` 路径）
 - concrete publish writer
 - publish stage
-- publish runtime wiring
+- explicit bounded target rectangle padding fix
 - mapping manifest `segment_count / segment_write_mode / write_segments`
 
 ### 3.2 验证线 `publish-stage-task1`
@@ -264,9 +267,9 @@
 
 主线当前仍不应把 live verification 脚手架整体并入，而应：
 
-- 保持 `publish foundation + publish hardening bundle v1` 的稳定状态
+- 保持 `publish foundation + publish hardening primitives` 的稳定状态
 - 只继续选择性提升已经被真实证据证明、且已被主流程实际消费的 foundation 级能力
-- readback / comparison contract 只有在主线出现明确消费者后再进入下一轮 selective promotion 判断
+- readback / comparison contract 与 runtime-connected hardening claim 只有在主线出现明确消费者后再进入下一轮 selective promotion 判断
 
 ### 6.2 验证线下一步
 
@@ -291,7 +294,7 @@
 
 截至 2026-03-23，当前仓库的最准确认知是：
 
-- `main` 仍是稳定基线，且当前状态已前进到 `publish foundation + publish hardening bundle v1`
+- `main` 仍是稳定基线，且当前状态已前进到 `publish foundation + publish hardening primitives`
 - `publish-stage-task1` 仍是继续向真实资源推进的验证线，且现在已具备首个有效 evidence archive 与最终 implementation archive
 - 当前 shell 仍没有 PATH 级 `pytest`，但主线与验证线都已经恢复出可复现的 fresh verification 路径
 - 历史归档继续保留，但恢复入口必须先走权威文档与最新状态对账

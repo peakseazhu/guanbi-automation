@@ -724,8 +724,9 @@ publish v1 的执行顺序固定为：
 - 同一 batch / 同一 mapping / 同一目标的追加式重跑默认 `blocked`
 - `empty_source_policy` 默认 `skip`
 - 目标子表必须能被稳定解析，不允许模糊匹配后直接写入
-- `58 x 127` 真实宽表约束已经在主线 `publish hardening bundle v1` 中产品化，`chunk_column_limit` 当前默认值为 `100`
+- `58 x 127` 真实宽表约束已经被验证线 evidence 证明，`chunk_column_limit` 当前默认值为 `100`
 - `publish_writer` 会消费 `plan_range_segments(...)`；单段范围走 `write_values(...)`，多段范围走 `values_batch_update(...)`
+- 上述 publish hardening primitives 已进入 `main`，但主线当前仍缺少非测试 publish runtime consumer
 - mapping manifest 当前会记录 `segment_count`、`segment_write_mode` 与 `write_segments`
 - readback / comparison contract 仍留在 validation line，不作为当前主线 publish runtime 的默认边界
 

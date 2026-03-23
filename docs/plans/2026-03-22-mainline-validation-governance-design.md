@@ -67,9 +67,14 @@
 - workbook publish source reader
 - feishu target planner
 - feishu sheets client adapter
+- concrete publish writer
 - publish stage
-- publish runtime wiring
 - 与以上实现直接对应的测试与最终实现归档
+
+当前补充约束为：
+
+- 若主线尚无非测试 publish runtime consumer，则只允许把 publish hardening primitives 落进 `main`，不能把状态写成“runtime 已接通”
+- `publish runtime wiring` 只有在主线存在真实 builder / bootstrap / entrypoint 并通过 fresh verification 后，才算可进入主线的稳定层
 
 ### 4.2 留在验证线的内容
 
@@ -125,6 +130,7 @@
   - 单 segment `write_values(...)` / 多 segment `values_batch_update(...)`
   - mapping manifest `segment_count / segment_write_mode / write_segments`
   - 对应 regression tests
+- 主线当前仍未具备非测试 `PublishStage` runtime wiring，因此上述内容继续只按 foundation / primitives 记账，不写成“publish runtime 已连通”
 - 当前仍继续留在验证线的内容为：
   - `fetch_tenant_access_token`
   - `read_values`

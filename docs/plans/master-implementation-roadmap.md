@@ -265,20 +265,24 @@
    - feishu sheets client adapter（含最小 `write_values_batch(...)` 路径）
    - concrete publish writer
    - publish stage
-   - publish runtime wiring
    - mapping manifest `segment_count / segment_write_mode / write_segments`
-6. `publish hardening bundle v1` 已通过 clean PR 合入 `main`：
+6. `publish hardening` primitive slice 已通过 clean PR 合入 `main`：
    - promotion 载体：`publish-hardening-promotion`
    - 来源：`publish-stage-task1@b1bca69`
    - merge commit：`5ac9b38 Merge pull request #2 from peakseazhu/publish-hardening-promotion`
    - merged PR：`#2 feat: promote publish hardening bundle`
 7. 本轮 mainline promotion focused verification 已确认：
    - `PYTHONPATH='D:\get_bi_data__1\.worktrees\publish-hardening-promotion;D:\get_bi_data__1\.packages' + D:\miniconda3\envs\feishu-broadcast\python.exe -m pytest tests/bootstrap/test_settings.py tests/infrastructure/feishu/test_client.py tests/infrastructure/feishu/test_target_planner.py tests/infrastructure/feishu/test_publish_writer.py tests/execution/test_publish_stage.py -v -p no:cacheprovider` -> `33 passed`
+   - 当前 `publish-mainline-reconciliation` corrective worktree focused verification：
+     `PYTHONPATH='D:\get_bi_data__1\.worktrees\publish-mainline-reconciliation;D:\get_bi_data__1\.packages' + D:\miniconda3\envs\feishu-broadcast\python.exe -m pytest tests/bootstrap/test_settings.py tests/infrastructure/feishu/test_client.py tests/infrastructure/feishu/test_target_planner.py tests/infrastructure/feishu/test_publish_writer.py tests/execution/test_publish_stage.py -v -p no:cacheprovider` -> `34 passed`
 8. 合并后主线 fresh full suite 已确认：
    - `PYTHONPATH='D:\get_bi_data__1;D:\get_bi_data__1\.packages' + D:\miniconda3\envs\feishu-broadcast\python.exe -m pytest tests -v -p no:cacheprovider` -> `98 passed`
+   - 当前 `publish-mainline-reconciliation` corrective worktree fresh full suite：
+     `PYTHONPATH='D:\get_bi_data__1\.worktrees\publish-mainline-reconciliation;D:\get_bi_data__1\.packages' + D:\miniconda3\envs\feishu-broadcast\python.exe -m pytest tests -v -p no:cacheprovider` -> `99 passed`
 9. 主线当前治理规则固定为：
    - `main` 只保留稳定阶段成果
    - 真实资源落地验证留在独立验证线推进
+   - 若主线尚无非测试 publish runtime consumer，不把状态写成“publish runtime 已连通”
 10. 当前验证线为：
    - `publish-stage-task1`
    - 继续承担 `publish live verification` 与 post-hardening validation
@@ -303,6 +307,7 @@
 11. 当前 selective promotion 已确认进入主线的 hardening slice 为：
    - `PublishSettings.chunk_column_limit=100`
    - row/column-aware range segmentation 与 single-range fallback inference
+   - explicit bounded target rectangle 会被完整写入，并用空串补齐剩余单元格
    - concrete publish writer
    - 单 segment `write_values(...)` / 多 segment `values_batch_update(...)`
    - batch-aware `PUBLISH_RANGE_INVALID`
@@ -315,9 +320,10 @@
    - live verification spec / service / entrypoint
    - local real-sample config / 真实目标标识 / evidence archive / readback comparison
 13. 当前主线下一恢复点为：
-   - 保持 `main` 在 `publish foundation + publish hardening bundle v1` 的稳定状态
+   - 保持 `main` 在 `publish foundation + publish hardening primitives` 的稳定状态
+   - 明确主线当前仍未具备非测试 publish runtime consumer
    - 后续仍只选择性吸收已被真实证据证明必要、且已被主流程实际消费的 foundation 能力
-   - readback / comparison contract 只有在主线出现明确消费者后才进入下一轮 selective promotion 判断
+   - readback / comparison contract 与 runtime-connected hardening claim 只有在主线出现明确消费者后才进入下一轮 selective promotion 判断
 14. 在进入下一阶段时，仍然不允许：
    - 回到 legacy `src/`
    - 把 extract runtime policy 退回单一 `extract_polling`

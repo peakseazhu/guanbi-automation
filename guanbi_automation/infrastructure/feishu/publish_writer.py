@@ -26,11 +26,15 @@ def write_publish_target(
     sheet_reference = (
         target_context.resolved_target.sheet_id or target_context.resolved_target.sheet_title
     )
+    planned_row_count, planned_column_count = _resolve_planned_shape(
+        dataset=dataset,
+        target_context=target_context,
+    )
     segments = plan_range_segments(
         start_row=target_context.resolved_target.start_row,
         start_col=target_context.resolved_target.start_col,
-        row_count=dataset.row_count,
-        column_count=dataset.column_count,
+        row_count=planned_row_count,
+        column_count=planned_column_count,
         max_rows=chunk_row_limit,
         max_columns=chunk_column_limit,
         sheet_id=sheet_reference,
@@ -140,6 +144,23 @@ def write_publish_target(
                 segment_write_mode=segment_write_mode,
             )
         ],
+    )
+
+
+def _resolve_planned_shape(
+    *,
+    dataset: PublishDataset,
+    target_context: PublishTargetContext,
+) -> tuple[int, int]:
+    if dataset.row_count < 1 or dataset.column_count < 1:
+        return dataset.row_count, dataset.column_count
+
+    resolved_target = target_context.resolved_target
+    resolved_row_count = resolved_target.end_row - resolved_target.start_row + 1
+    resolved_column_count = resolved_target.end_col - resolved_target.start_col + 1
+    return (
+        max(dataset.row_count, resolved_row_count),
+        max(dataset.column_count, resolved_column_count),
     )
 
 
