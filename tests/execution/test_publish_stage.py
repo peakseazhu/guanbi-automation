@@ -88,6 +88,41 @@ def test_publish_stage_manifest_records_segment_summary(tmp_path: Path):
     assert result.manifest["mappings"][0]["write_segments"][1]["column_offset"] == 100
 
 
+def test_publish_stage_single_range_manifest_defaults_to_one_segment(tmp_path: Path):
+    workbook_path = tmp_path / "result.xlsx"
+    workbook_path.write_bytes(b"placeholder")
+
+    stage = PublishStage(
+        source_reader=lambda *_args, **_kwargs: _dataset(rows=[["x", 1], ["y", 2]]),
+        target_loader=lambda *_args, **_kwargs: _target_context(),
+        target_writer=lambda *_args, **_kwargs: _write_result(
+            chunk_count=1,
+            written_row_count=2,
+        ),
+    )
+
+    result = stage.run(
+        PlannedPublishRun(
+            batch_id="batch-001",
+            job_id="job-001",
+            workbook_path=workbook_path,
+            mappings=[_mapping_spec()],
+        )
+    )
+
+    assert result.manifest["mappings"][0]["write_summary"]["segment_count"] == 1
+    assert result.manifest["mappings"][0]["write_summary"]["segment_write_mode"] == "single_range"
+    assert result.manifest["mappings"][0]["write_segments"] == [
+        {
+            "range_string": "子表1!B3:C4",
+            "row_count": 2,
+            "column_count": 2,
+            "row_offset": 0,
+            "column_offset": 0,
+        }
+    ]
+
+
 def test_publish_stage_skips_empty_source_when_policy_is_skip(tmp_path: Path):
     workbook_path = tmp_path / "result.xlsx"
     workbook_path.write_bytes(b"placeholder")
