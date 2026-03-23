@@ -61,6 +61,7 @@ def test_run_publish_runtime_uses_deterministic_default_ids(tmp_path: Path):
     assert first.final_error is not None
     assert first.final_error.code == RuntimeErrorCode.CONFIGURATION_ERROR
     assert "not implemented yet" in first.final_error.message
+    assert first.final_error.details == {"stage_name": "publish"}
     assert second.batch_id == first.batch_id
     assert second.job_id == first.job_id
 
@@ -85,6 +86,7 @@ def test_run_publish_runtime_normalizes_blank_ids_to_default_values(tmp_path: Pa
     assert result.final_error is not None
     assert result.final_error.code == RuntimeErrorCode.CONFIGURATION_ERROR
     assert "not implemented yet" in result.final_error.message
+    assert result.final_error.details == {"stage_name": "publish"}
 
 
 @pytest.mark.parametrize(
