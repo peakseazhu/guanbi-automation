@@ -1,7 +1,7 @@
 # 仓库状态与恢复入口设计
 
 > 状态：Approved
-> 最近更新：2026-03-22
+> 最近更新：2026-03-23
 > 关联文档：
 > - `docs/plans/master-system-design.md`
 > - `docs/plans/master-implementation-roadmap.md`
@@ -41,20 +41,20 @@
 - workbook foundation
 - publish foundation
 
-最近一次已记录的 fresh automated verification 结果为：
+最新一次已确认的主线 fresh automated verification 结果为：
 
-- `pytest tests -v -p no:cacheprovider` -> `86 passed`
+- `PYTHONPATH='D:\get_bi_data__1;D:\get_bi_data__1\.packages' + D:\miniconda3\envs\feishu-broadcast\python.exe -m pytest tests -v -p no:cacheprovider` -> `87 passed`
 
-但本次会话重新尝试验证时，当前可访问环境已经暴露出新的复现阻塞：
+当前还必须同时记住：
 
-- `pytest` 不在当前 shell PATH 中
-- 历史 `D:\miniconda3\envs\feishu-broadcast\python.exe` 当前缺少 `pytest`
-- `.venv + .packages` 可以启动 `pytest`，但在 collection 阶段缺少 `openpyxl` 与 `xlwings`
+- `pytest` 仍不在当前 shell PATH 中
+- `feishu-broadcast` env 本身仍缺 `pytest / pydantic / PyYAML`
+- 但该 env 已具备 `openpyxl / xlwings / pywin32`
+- 根目录 `.packages` 已补齐 `pytest / pydantic / PyYAML`
 
-因此这里必须区分：
+因此当前可复现的 fresh verification 路径已经恢复为：
 
-- 最近一次已记录通过的 full suite 结果
-- 当前这台机器在本次会话里是否还能立即复现同样的 full suite
+- `feishu-broadcast python + root .packages`
 
 ### 2.2 权威文档层
 
@@ -122,6 +122,10 @@
 
 - `.worktrees/publish-stage-task1/runs/live_verification/publish/20260322T054012Z`
 
+同时已新增一条有效 evidence archive：
+
+- `.worktrees/publish-stage-task1/runs/live_verification/publish/20260323T022511Z`
+
 ### 2.6 本机环境与临时工具层
 
 以下内容属于本机环境、临时工具或编辑器层，不是当前项目方向的权威事实来源：
@@ -184,21 +188,20 @@
 - real sample entrypoint
 - 本地 real-sample spec：
   - `.worktrees/publish-stage-task1/config/live_verification/publish/real_sample.local.yaml`
-- 一次运行足迹目录：
+- 历史运行足迹目录：
   - `.worktrees/publish-stage-task1/runs/live_verification/publish/20260322T054012Z`
-
-但当前仍未完成：
-
-- 真实样本运行证据归档
-  - 当前时间戳目录仍为空，缺少 `request.json`、`write-plan.json`、`comparison.json` 等关键文件
-- live verification 最终 implementation archive
-- 真实写入 / 读回 / comparison 成功证据的晋升判断
+- 首个有效 evidence archive：
+  - `.worktrees/publish-stage-task1/runs/live_verification/publish/20260323T022511Z`
+  - 已落下 `request.json`、`source-metadata.json`、`target-metadata.json`、`write-plan.json`、`write-result.json`、`readback.json`、`comparison.json`
+  - `comparison.json -> matches = true`
+- live verification 最终 implementation archive：
+  - `.worktrees/publish-stage-task1/docs/archive/sessions/2026-03-22-publish-live-verification-implementation.md`
 
 这意味着验证线当前状态是：
 
 - 自动化代码与本地验证输入已到位
-- 已经出现一次运行足迹
-- 有效 evidence archive 仍未收口
+- 已同时具备历史运行足迹与有效 evidence archive
+- 已经可以基于真实证据判断哪些内容值得选择性回灌 `main`
 
 ## 4. 当前明确存在的历史/现状混淆点
 
@@ -251,41 +254,40 @@
 
 ### 6.1 主线下一步
 
-主线当前不应继续扩展 publish foundation，而应：
+主线当前不应把 live verification 脚手架整体并入，而应：
 
 - 保持稳定
-- 等待验证线拿到真实样本证据后，再决定是否选择性提升
+- 只选择性提升已经被真实证据证明的 foundation 级能力
+
+当前已完成的首个选择性提升为：
+
+- `publish_source_reader` 的 streaming-safe 读取修复
+- 对应回归测试
 
 ### 6.2 验证线下一步
 
-验证线当前唯一合理入口是：
+验证线当前下一合理入口是：
 
-- 先恢复可执行验证环境，使 focused verification 与 full suite 可以重新运行
-- 先跑 live verification focused verification
-- 执行 real sample 写入、读回和 comparison
-- 让 `runs/live_verification/publish/<timestamp>/` 真正落下 evidence JSON 文件
-- 补写 `.worktrees/publish-stage-task1/docs/archive/sessions/2026-03-22-publish-live-verification-implementation.md`
-- 再决定哪些内容值得晋升进 `main`
+- 保留 `20260322T054012Z` 为空足迹目录的历史事实
+- 以 `20260323T022511Z` 作为首个有效 evidence archive 继续推进后续判断
+- 若继续提升内容到 `main`，仍先做真实证据，再区分通用能力与本地验证资产
 
 ## 7. 当前仍需持续跟踪的缺口
 
 当前仍需持续跟踪的缺口如下：
 
-- publish live verification 尚未形成有效 evidence archive
-- 已存在一条空的运行足迹目录，说明“跑过一次痕迹”和“证据闭环完成”不能混写
-- 当前可访问测试环境存在漂移：
-  - `feishu-broadcast` env 缺 `pytest`
-  - `.venv + .packages` 缺 `openpyxl` 与 `xlwings`
+- 已存在一条空的历史运行足迹目录，说明“跑过一次痕迹”和“证据闭环完成”仍不能混写
+- 当前 shell 仍不具备直接 PATH 级 `pytest`
+- 当前仍需要通过 `feishu-broadcast python + root .packages` 这条组合路径复现 fresh verification
 - discovery / page snapshot / template / run planner / web 尚未开始实现
 - `pyproject.toml`、`environment.yml`、`requirements.txt` 之间仍存在依赖治理收口空间
 - 旧配置与真实资源映射仍主要停留在 legacy 证据层，尚未正式进入新模板系统
 
 ## 8. 当前结论
 
-截至 2026-03-22，当前仓库的最准确认知是：
+截至 2026-03-23，当前仓库的最准确认知是：
 
-- `main` 已是稳定的 publish foundation 基线
-- `publish-stage-task1` 是继续向真实资源推进的验证线，且 live verification 代码路径与本地 spec 已经到位
-- 验证线已出现一次运行足迹，但有效 evidence archive 和最终 implementation archive 仍未完成
-- 当前 shell 可访问的测试环境还不能直接复现历史 full suite，需要先修复依赖漂移
+- `main` 仍是稳定基线，并已回灌首个由真实证据证明必要的 publish source foundation 修复
+- `publish-stage-task1` 仍是继续向真实资源推进的验证线，且现在已具备首个有效 evidence archive 与最终 implementation archive
+- 当前 shell 仍没有 PATH 级 `pytest`，但主线与验证线都已经恢复出可复现的 fresh verification 路径
 - 历史归档继续保留，但恢复入口必须先走权威文档与最新状态对账

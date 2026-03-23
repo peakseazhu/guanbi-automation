@@ -1,6 +1,6 @@
 # Guanbi Automation
 
-从 0 构建的观远 BI 自动化套件当前已完成 runtime contract、extract runtime policy、workbook foundation 与 publish foundation。主线 `main` 只保留稳定阶段成果；真实资源落地验证继续在独立验证线推进。
+从 0 构建的观远 BI 自动化套件当前已完成 runtime contract、extract runtime policy、workbook foundation 与 publish foundation。主线 `main` 只保留稳定阶段成果；真实资源落地验证继续在独立验证线推进。基于首个有效 publish live verification evidence archive，主线已同步 publish source reader 的 streaming-safe 读取修复。
 
 ## Recovery Entry
 
@@ -19,7 +19,9 @@
 
 - `main` 是稳定基线
 - `.worktrees/publish-stage-task1` 是 publish live verification 验证线，不替代主线权威文档
-- 验证线当前虽然已经具备 live verification 代码路径与本地 real-sample spec，但 `runs/live_verification/publish/20260322T054012Z` 仍为空目录，不能当成验证完成证据
+- 验证线同时保留两类运行目录：
+  - `runs/live_verification/publish/20260322T054012Z` 仍为空目录，只算历史运行足迹
+  - `runs/live_verification/publish/20260323T022511Z` 是首个有效 evidence archive，`comparison.json` 已确认 `matches = true`
 
 ## Runtime Contract Baseline
 

@@ -175,6 +175,20 @@
   3. 是否已经形成可复查的 evidence archive 与最终 session archive
   空目录或缺关键 JSON 文件的时间戳目录，只能算运行足迹，不能算验证闭环完成。
 - Consequences：
-  - 后续主线文档不再使用“没有任何运行痕迹”来描述这类状态。
-  - 验证线是否可晋升到 `main`，必须同时看真实写入/读回/comparison 结果和归档是否完整。
-  - 状态对账文档需要同时记录“已经实现到哪里”和“证据收口到哪里”。
+- 后续主线文档不再使用“没有任何运行痕迹”来描述这类状态。
+- 验证线是否可晋升到 `main`，必须同时看真实写入/读回/comparison 结果和归档是否完整。
+- 状态对账文档需要同时记录“已经实现到哪里”和“证据收口到哪里”。
+
+## ADR-2026-03-23-18：首个有效 publish live verification 证据形成后，只将通用 source-reader 修复回灌主线
+
+- Status：Accepted
+- Context：`publish-stage-task1` 已形成首个有效 evidence archive：`.worktrees/publish-stage-task1/runs/live_verification/publish/20260323T022511Z`，其中 `comparison.json` 已确认 `matches = true`。真实样本验证同时暴露出一个 foundation 级问题：`publish_source_reader` 在约 `215MB` workbook 上仍执行全量 `load_workbook(..., data_only=True)`，会导致 publish source 读取阶段卡死。此问题已在验证线通过回归测试、focused verification、full suite 和真实样本运行得到证实。
+- Decision：只将与真实资源无关、已被证据证明的通用修复回灌 `main`，即：
+  - `publish_source_reader` 改为 `read_only=True`
+  - 行读取改为 `iter_rows(values_only=True)`
+  - 对应回归测试进入主线
+  而本地 `real_sample.local.yaml`、real-sample entrypoint、真实目标标识与 evidence archive 继续留在验证线。
+- Consequences：
+  - `main` 获得了被真实证据证明必要的 foundation 级稳定性修复。
+  - 主线不会因为一次成功的真实样本验证，就把所有 live verification 脚手架一起并入。
+  - 后续若要继续从验证线提升内容，仍必须先形成真实证据，再区分“通用正式能力”和“一次性验证资产”。

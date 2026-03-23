@@ -1,7 +1,7 @@
 # 主线稳定与验证推进双轨治理设计
 
 > 状态：Approved
-> 最近更新：2026-03-22
+> 最近更新：2026-03-23
 > 关联文档：
 > - `docs/plans/master-implementation-roadmap.md`
 > - `docs/archive/decision-log.md`
@@ -115,4 +115,13 @@
 
 - `publish-stage-task1` 已具备 live verification spec、Feishu readback / batch write support、service 与 real-sample entrypoint
 - `.worktrees/publish-stage-task1/config/live_verification/publish/real_sample.local.yaml` 已锁定真实 workbook/source/target
-- `.worktrees/publish-stage-task1/runs/live_verification/publish/20260322T054012Z` 已存在运行足迹目录，但仍为空，因此当前仍不构成可复查 evidence archive
+- `.worktrees/publish-stage-task1/runs/live_verification/publish/20260322T054012Z` 已存在运行足迹目录，但仍为空，因此继续只算历史运行足迹
+- `.worktrees/publish-stage-task1/runs/live_verification/publish/20260323T022511Z` 已形成首个可复查 evidence archive，`comparison.json` 已确认 `matches = true`
+- 基于该证据，当前已确认可进入 `main` 的内容为：
+  - `publish_source_reader` 的 streaming-safe 读取修复
+  - 对应回归测试
+- 当前仍继续留在验证线的内容为：
+  - live verification local spec
+  - real-sample entrypoint
+  - 真实资源标识
+  - evidence archive 本身

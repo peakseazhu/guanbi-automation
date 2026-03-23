@@ -1,7 +1,7 @@
 # 观远 BI 自动化套件主实施路线图
 
 > 状态：Active
-> 最近更新：2026-03-22
+> 最近更新：2026-03-23
 > 当前执行明细：
 > - `docs/plans/2026-03-19-from-scratch-guanbi-automation-implementation-plan.md`
 > - `docs/plans/2026-03-19-runtime-contract-implementation-plan.md`
@@ -252,7 +252,7 @@
 
 ## 14. 当前恢复点
 
-截至 2026-03-22，当前执行状态已经更新为：
+截至 2026-03-23，当前执行状态已经更新为：
 
 1. `runtime contract` 已完成并通过全量测试验证。
 2. `extract runtime policy` 已按 `docs/plans/2026-03-20-extract-runtime-policy-implementation-plan.md` 完成 Task 1-7，并通过全量测试验证。
@@ -265,10 +265,15 @@
    - feishu sheets client adapter
    - publish stage
    - publish runtime wiring
-6. 主线当前治理规则固定为：
+6. 基于验证线首个有效 evidence archive，主线已进一步同步：
+   - `publish_source_reader` 的 streaming-safe 读取修复
+   - 对应回归测试
+7. 主线当前 fresh verification 已恢复并更新为：
+   - `PYTHONPATH='D:\get_bi_data__1;D:\get_bi_data__1\.packages' + D:\miniconda3\envs\feishu-broadcast\python.exe -m pytest tests -v -p no:cacheprovider` -> `87 passed`
+8. 主线当前治理规则固定为：
    - `main` 只保留稳定阶段成果
    - 真实资源落地验证留在独立验证线推进
-7. 当前验证线为：
+9. 当前验证线为：
    - `publish-stage-task1`
    - 继续承担 `publish live verification`
    - 最近提交为：`350b903 feat: add publish live verification entry`
@@ -278,26 +283,25 @@
       - live verification service
       - real-sample entrypoint
    - 当前本地 spec 已锁定真实 workbook/source/target
-   - `runs/live_verification/publish/20260322T054012Z` 已存在运行足迹目录，但仍为空
-   - 空的时间戳目录只算运行足迹，不算有效 evidence archive
-   - 当前从本 shell fresh 重跑 full suite 仍被环境漂移阻塞：
-      - `feishu-broadcast` env 缺 `pytest`
-      - `.venv + .packages` 缺 `openpyxl` / `xlwings`
-   - 当前仍缺 live verification Task 5 的真实写入 / 读回 / comparison evidence 与最终 implementation archive
-8. 当前主线下一恢复点为：
-   - 保持 `main` 在 publish foundation 稳定状态
-   - 等待验证线完成真实样本写入 / 读回 / comparison evidence 与 implementation archive
-   - 再按证据决定是否提升 live verification 相关成果
-9. 当前验证线下一恢复点为：
-   - 先恢复可执行验证环境，使 focused verification 与 full suite 可以重新运行
-   - 运行 live verification focused verification
-   - 执行 real sample 写入 / 读回 / comparison
-   - 形成完整 evidence archive
-   - 补写最终 implementation archive
-10. 在进入下一阶段时，仍然不允许：
+   - 历史运行足迹目录：
+      - `runs/live_verification/publish/20260322T054012Z`
+   - 首个有效 evidence archive：
+      - `runs/live_verification/publish/20260323T022511Z`
+      - `comparison.json` 已确认 `matches = true`
+   - 最终 implementation archive：
+      - `.worktrees/publish-stage-task1/docs/archive/sessions/2026-03-22-publish-live-verification-implementation.md`
+   - 验证线 fresh full suite 已恢复并更新为：
+      - `PYTHONPATH='D:\get_bi_data__1\.worktrees\publish-stage-task1;D:\get_bi_data__1\.packages' + D:\miniconda3\envs\feishu-broadcast\python.exe -m pytest tests -v -p no:cacheprovider` -> `102 passed`
+10. 当前主线下一恢复点为：
+   - 保持 `main` 在 publish foundation + streaming-safe source reader 修复的稳定状态
+   - 后续只继续选择性吸收被真实证据证明必要、且不绑定本地资源的 foundation 能力
+11. 当前验证线下一恢复点为：
+   - 保留 live verification local spec、real-sample entrypoint 与 evidence archive 在验证线
+   - 若继续推进新的提升项，仍先形成真实证据，再决定哪些内容值得回灌 `main`
+12. 在进入下一阶段时，仍然不允许：
    - 回到 legacy `src/`
    - 把 extract runtime policy 退回单一 `extract_polling`
-   - 把未完成真实证据收口的验证层内容直接并入 `main`
+   - 把本地 spec、真实目标标识与 evidence archive 整体并入 `main`
 
 ## 15. 恢复阅读顺序
 

@@ -9,7 +9,8 @@ from guanbi_automation.infrastructure.excel.block_locator import trim_trailing_e
 
 
 def read_publish_source(workbook_path: Path, source: PublishSourceSpec) -> PublishDataset:
-    workbook = load_workbook(workbook_path, data_only=True)
+    # Publish live verification reads a 200MB+ workbook sample, so source reads must stay streaming-safe.
+    workbook = load_workbook(workbook_path, data_only=True, read_only=True)
     try:
         sheet = workbook[source.sheet_name]
         rows = _read_bounded_rows(sheet=sheet, source=source)
@@ -40,13 +41,19 @@ def read_publish_source(workbook_path: Path, source: PublishSourceSpec) -> Publi
 def _read_bounded_rows(*, sheet: object, source: PublishSourceSpec) -> list[list[object]]:
     max_row = source.end_row or getattr(sheet, "max_row")
     max_col = source.end_col or getattr(sheet, "max_column")
+    if max_row is None or max_col is None:
+        return []
 
-    rows: list[list[object]] = []
-    for row_index in range(source.start_row, max_row + 1):
-        row_values: list[object] = []
-        for col_index in range(source.start_col, max_col + 1):
-            row_values.append(sheet.cell(row=row_index, column=col_index).value)
-        rows.append(row_values)
+    rows = [
+        list(row)
+        for row in sheet.iter_rows(
+            min_row=source.start_row,
+            max_row=max_row,
+            min_col=source.start_col,
+            max_col=max_col,
+            values_only=True,
+        )
+    ]
 
     return trim_trailing_empty_edges(rows)
 
