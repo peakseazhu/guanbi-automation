@@ -1,6 +1,6 @@
 # Guanbi Automation
 
-从 0 构建的观远 BI 自动化套件当前已完成 runtime contract、extract runtime policy、workbook foundation 与 publish foundation。主线 `main` 只保留稳定阶段成果；真实资源落地验证继续在独立验证线推进。基于首个有效 publish live verification evidence archive，主线已同步 `publish_source_reader` 的 streaming-safe 读取修复。最新一轮 validation branch promotion sweep 已确认：除该修复外，剩余 live verification 代码暂不直接回灌，下一批候选项应是完整的 `publish hardening` bundle，而不是零散 helper。
+从 0 构建的观远 BI 自动化套件当前已完成 runtime contract、extract runtime policy、workbook foundation、publish foundation，并基于首个有效 publish live verification evidence archive 收口 `publish hardening bundle v1`。当前主线目标状态已包含 `publish_source_reader` 的 streaming-safe 读取修复、concrete Feishu publish writer、row/column-aware segment planning、`values_batch_update` 批量写入路径，以及 segment-aware publish manifest surface；真实资源 readback/comparison 与 live verification runtime 继续在独立验证线推进。
 
 ## Recovery Entry
 
@@ -20,13 +20,13 @@
 - `main` 是稳定基线
 - `.worktrees/publish-stage-task1` 是 publish live verification 验证线，不替代主线权威文档
 - 最新主线状态归档已前进到：
-  - `docs/archive/sessions/2026-03-23-validation-branch-promotion-sweep.md`
+  - `docs/archive/sessions/2026-03-23-publish-hardening-promotion.md`
 - 验证线同时保留两类运行目录：
   - `runs/live_verification/publish/20260322T054012Z` 仍为空目录，只算历史运行足迹
   - `runs/live_verification/publish/20260323T022511Z` 是首个有效 evidence archive，`comparison.json` 已确认 `matches = true`
 - 当前最重要的新边界是：
-  - `58 x 127` 真实宽表已经证明后续必须做 row/column-aware publish hardening
-  - 但该能力下一次应以主线可消费的完整 bundle 进入，而不是先把 live verification helper 零散抬进 `main`
+  - `58 x 127` 真实宽表已经被主线 `publish hardening bundle v1` 产品化：`chunk_column_limit=100`，单 segment 走 `write_values`，多 segment 走 `values_batch_update`
+  - `.worktrees/publish-stage-task1` 仍只保留 live verification spec / service / entrypoint / local spec / evidence / readback comparison，不替代主线 runtime
 
 ## Runtime Contract Baseline
 
@@ -65,8 +65,9 @@
 
 - `PublishSourceSpec`、`PublishTargetSpec`、`PublishMappingSpec`
 - workbook value-only source reader
-- Feishu target planner 与 chunk helpers
-- Feishu Sheets client adapter
+- Feishu target planner 与 row/column-aware segment planner
+- Feishu Sheets client adapter 与 batch-range write path
+- concrete publish writer
 - mapping-level publish manifest
 - `publish` execution stage
 
@@ -74,6 +75,10 @@
 
 - publish 只消费 result workbook 的值，不上传公式
 - target 支持 `replace_sheet`、`replace_range`、`append_rows`
+- `chunk_column_limit` 默认值为 `100`
+- 单 segment 写入走 `write_values`
+- 多 segment 写入走 `values_batch_update`
+- mapping manifest 会记录 `segment_count`、`segment_write_mode` 与 `write_segments`
 - `append_rows` 重跑默认阻断，不视为天然幂等
 - publish gate 会在进入阶段前校验 workbook、mapping 数量与 target readiness
 
@@ -90,4 +95,4 @@
 - stage gate evaluation
 - extract stage segmented runtime evidence
 - workbook contract, locator, loader, writer, ingest, transform foundation
-- publish contract, source reader, target planner, client adapter, stage, and runtime wiring foundation
+- publish contract, source reader, row/column-aware target planner, batch-capable client adapter, publish writer, stage, and runtime wiring foundation

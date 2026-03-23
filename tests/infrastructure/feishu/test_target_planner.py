@@ -3,6 +3,7 @@ import pytest
 from guanbi_automation.domain.publish_contract import PublishDataset, PublishTargetSpec
 from guanbi_automation.infrastructure.feishu.target_planner import (
     chunk_publish_rows,
+    plan_range_segments,
     resolve_append_rows,
     resolve_replace_range,
     resolve_replace_sheet,
@@ -120,6 +121,53 @@ def test_chunk_publish_rows_splits_dataset_by_row_limit():
         [["a", 1], ["b", 2]],
         [["c", 3]],
     ]
+
+
+def test_plan_range_segments_splits_wide_dataset_by_column_limit():
+    segments = plan_range_segments(
+        start_row=1,
+        start_col=1,
+        row_count=80,
+        column_count=127,
+        max_rows=5000,
+        max_columns=100,
+        sheet_id="ySyhcD",
+    )
+
+    assert [segment.range_string for segment in segments] == [
+        "ySyhcD!A1:CV80",
+        "ySyhcD!CW1:DW80",
+    ]
+    assert [(segment.start_col, segment.end_col) for segment in segments] == [
+        (1, 100),
+        (101, 127),
+    ]
+
+
+def test_plan_range_segments_splits_large_dataset_by_rows_and_columns():
+    segments = plan_range_segments(
+        start_row=5,
+        start_col=2,
+        row_count=520,
+        column_count=127,
+        max_rows=500,
+        max_columns=100,
+        sheet_id="ySyhcD",
+    )
+
+    assert [segment.range_string for segment in segments] == [
+        "ySyhcD!B5:CW504",
+        "ySyhcD!CX5:DX504",
+        "ySyhcD!B505:CW524",
+        "ySyhcD!CX505:DX524",
+    ]
+    assert [(segment.row_offset, segment.column_offset) for segment in segments] == [
+        (0, 0),
+        (0, 100),
+        (500, 0),
+        (500, 100),
+    ]
+
 
 def test_replace_range_rejects_explicit_bounds_smaller_than_dataset_shape():
     dataset = PublishDataset(

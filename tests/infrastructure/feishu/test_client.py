@@ -38,6 +38,15 @@ def test_map_feishu_write_range_error_to_publish_range_invalid():
     assert error.retryable is False
 
 
+def test_map_feishu_batch_range_error_to_publish_range_invalid():
+    response = httpx.Response(400, json={"code": 123400, "msg": "invalid range"})
+
+    error = map_feishu_error("write_values_batch", response)
+
+    assert error.code == RuntimeErrorCode.PUBLISH_RANGE_INVALID
+    assert error.retryable is False
+
+
 def test_query_sheets_returns_sheet_metadata_and_uses_auth_header():
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.method == "GET"
@@ -109,3 +118,67 @@ def test_write_values_sends_value_range_payload():
     )
 
     assert payload["data"]["updatedRows"] == 2
+
+
+def test_write_values_batch_sends_multiple_ranges_payload():
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "POST"
+        assert request.url.path == "/open-apis/sheets/v2/spreadsheets/spreadsheet-token/values_batch_update"
+        assert request.headers["Authorization"] == "Bearer tenant-token"
+        assert request.headers["Content-Type"] == "application/json; charset=utf-8"
+        assert json.loads(request.content.decode("utf-8")) == {
+            "valueRanges": [
+                {
+                    "range": "ySyhcD!A1:CV80",
+                    "values": [["表头1", "表头2"], ["x", "1"]],
+                },
+                {
+                    "range": "ySyhcD!CW1:DW80",
+                    "values": [["表头101", "表头127"], ["a", "b"]],
+                },
+            ]
+        }
+        return httpx.Response(
+            200,
+            json={
+                "code": 0,
+                "msg": "success",
+                "data": {
+                    "revision": 88,
+                    "spreadsheetToken": "spreadsheet-token",
+                    "responses": [
+                        {
+                            "updatedRange": "ySyhcD!A1:CV80",
+                            "updatedRows": 80,
+                            "updatedColumns": 100,
+                            "updatedCells": 8000,
+                        },
+                        {
+                            "updatedRange": "ySyhcD!CW1:DW80",
+                            "updatedRows": 80,
+                            "updatedColumns": 27,
+                            "updatedCells": 2160,
+                        },
+                    ],
+                },
+            },
+        )
+
+    client = FeishuSheetsClient(transport=httpx.MockTransport(handler))
+
+    payload = client.write_values_batch(
+        spreadsheet_token="spreadsheet-token",
+        value_ranges=[
+            {
+                "range": "ySyhcD!A1:CV80",
+                "values": [["表头1", "表头2"], ["x", "1"]],
+            },
+            {
+                "range": "ySyhcD!CW1:DW80",
+                "values": [["表头101", "表头127"], ["a", "b"]],
+            },
+        ],
+        tenant_access_token="tenant-token",
+    )
+
+    assert payload["data"]["responses"][1]["updatedColumns"] == 27

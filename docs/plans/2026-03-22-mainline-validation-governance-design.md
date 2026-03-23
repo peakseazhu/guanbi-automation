@@ -117,11 +117,20 @@
 - `.worktrees/publish-stage-task1/config/live_verification/publish/real_sample.local.yaml` 已锁定真实 workbook/source/target
 - `.worktrees/publish-stage-task1/runs/live_verification/publish/20260322T054012Z` 已存在运行足迹目录，但仍为空，因此继续只算历史运行足迹
 - `.worktrees/publish-stage-task1/runs/live_verification/publish/20260323T022511Z` 已形成首个可复查 evidence archive，`comparison.json` 已确认 `matches = true`
-- 基于该证据，当前已确认可进入 `main` 的内容为：
+- 基于该证据与后续 hardening 实现收口，当前已进入主线目标状态的内容为：
   - `publish_source_reader` 的 streaming-safe 读取修复
-  - 对应回归测试
+  - `PublishSettings.chunk_column_limit=100`
+  - row/column-aware `plan_range_segments(...)`
+  - concrete `publish_writer`
+  - 单 segment `write_values(...)` / 多 segment `values_batch_update(...)`
+  - mapping manifest `segment_count / segment_write_mode / write_segments`
+  - 对应 regression tests
 - 当前仍继续留在验证线的内容为：
+  - `fetch_tenant_access_token`
+  - `read_values`
+  - `PUBLISH_READBACK_MISMATCH`
   - live verification local spec
+  - live verification service
   - real-sample entrypoint
   - 真实资源标识
-  - evidence archive 本身
+  - evidence archive 与 readback / comparison runtime

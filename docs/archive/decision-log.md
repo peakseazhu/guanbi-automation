@@ -213,3 +213,25 @@
   - `main` 不会因为零散 helper 进入而被误写成“已具备 publish hardening”。
   - `publish-stage-task1` 继续承担 live verification 与下一批 publish hardening 候选实现。
   - 后续 selective promotion 的判断单位，从“单个 helper”前移为“可被主线真正消费的连通能力切片”。
+
+## ADR-2026-03-23-20：满足 ADR-19 条件后，将完整 publish hardening bundle v1 提升到 mainline promotion
+
+- Status：Accepted
+- Context：`publish-stage-task1` 已形成首个有效 evidence archive `.worktrees/publish-stage-task1/runs/live_verification/publish/20260323T022511Z`，其中 `comparison.json` 已确认 `matches = true`，并证明当前真实样本是 `58 x 127`，需要按 `100 + 27` 列段写入。验证线随后完成了 `publish hardening bundle v1` 的实现收口与归档：`f268f66 feat: add publish hardening manifest surface`、`18d37da fix: infer single-range publish segments`、`b7ceea4 feat: add publish hardening writer`、`b1bca69 docs: archive publish hardening implementation`。基于该 bundle，新建 `publish-hardening-promotion` 作为干净的 selective promotion 载体，并完成 fresh verification：focused hardening suite `33 passed`、promotion branch full suite `98 passed`；验证线 full suite 同时为 `110 passed`。
+- Decision：将完整 `publish hardening bundle v1` 提升到 mainline promotion，包含：
+  - `PublishSettings.chunk_column_limit`
+  - row/column-aware `plan_range_segments(...)` 被 concrete `publish_writer` 实际消费
+  - 单 segment `write_values(...)` 与多 segment `values_batch_update(...)` 写入路径
+  - batch-aware `PUBLISH_RANGE_INVALID` 错误映射
+  - mapping manifest `segment_count / segment_write_mode / write_segments`
+  - 对应 regression tests 与主线 session archive
+  同时明确排除：
+  - `fetch_tenant_access_token`
+  - `read_values`
+  - `PUBLISH_READBACK_MISMATCH`
+  - live verification spec / service / entrypoint
+  - local real-sample config、真实目标标识、evidence archive 与 readback/comparison runtime
+- Consequences：
+  - `main` 的目标状态已从 `publish foundation` 升级为 `publish foundation + publish hardening bundle v1`。
+  - `58 x 127` 真实宽表约束已被主线 runtime 产品化，而不是继续停留在验证线 helper。
+  - validation line 继续承担 readback / comparison、真实资源目标与 live verification runtime，不因本次 promotion 被并入主线。

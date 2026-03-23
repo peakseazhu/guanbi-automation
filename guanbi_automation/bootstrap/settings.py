@@ -91,4 +91,5 @@ class PublishSettings(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     chunk_row_limit: int = Field(default=500, gt=0)
+    chunk_column_limit: int = Field(default=100, gt=0)
     empty_source_policy: Literal["skip", "replace_with_empty"] = "skip"
