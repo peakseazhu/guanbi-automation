@@ -158,3 +158,18 @@
   - Feishu client 需要补齐 tenant token、读回与多范围写入能力。
   - publish hardening 的下一优先级前移为 row/column 双维度 chunk 策略，而不是只调行数阈值。
   - live verification 归档必须记录真实样本形状、目标子表元数据、写入分段与读回比对结果。
+
+## ADR-2026-03-23-16：验证线当前态以 canonical `58 x 127` 为准，并同步修复显式矩形写入语义
+
+- Status：Accepted
+- Context：
+  - 首个有效 evidence archive `runs/live_verification/publish/20260323T022511Z/source-metadata.json` 与 `comparison.json` 已确认，真正进入 write plan、写入与 readback comparison 的 canonical 数据集为 `58 x 127`。
+  - 验证线部分当前态文档仍保留早期观测到的 `80 x 127` 边界描述，容易把“最大边界”误读成“实际写入矩阵”。
+  - 同时，验证线 `publish_writer` 仍保留显式矩形边界截断问题：当 resolved target 比 dataset 更大时，writer 只会按 dataset 形状写入，无法清理显式矩形内剩余单元格。
+- Decision：
+  - 验证线当前态文档统一改为：`80 x 127` 只作为早期观测边界，当前 canonical live-verification shape 以 `58 x 127` 为准。
+  - `publish_writer` 按 resolved target 的完整矩形规划写入；dataset 非空时，超出 dataset 的部分用空串补齐。
+  - 下一步路线判断仍以“先保证验证线事实与代码一致，再评估主线 consumer slice”为准，不因单次局部修复改变整体双轨治理。
+- Consequences：
+  - 验证线再次成为可信的下一阶段判断基座。
+  - 后续若继续抽主线 consumer，不会再建立在过时 shape 叙述和错误边界语义上。

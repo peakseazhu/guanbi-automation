@@ -140,8 +140,8 @@ def test_plan_range_segments_splits_wide_dataset_by_column_limit():
     )
 
     assert [segment.range_string for segment in segments] == [
-        "ySyhcD!A1:CV80",
-        "ySyhcD!CW1:DW80",
+        "ySyhcD!A1:CV58",
+        "ySyhcD!CW1:DW58",
     ]
 ```
 
@@ -364,7 +364,7 @@ Expected:
 
 - tenant token fetch succeeds
 - target sheet metadata resolves to `ySyhcD`
-- write plan contains two column segments for the `80 x 127` sample
+- write plan contains two column segments for the canonical `58 x 127` sample
 - readback comparison reports `matches = true`
 - evidence directory is printed
 

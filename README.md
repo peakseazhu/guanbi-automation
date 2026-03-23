@@ -1,6 +1,6 @@
 # Guanbi Automation
 
-从 0 构建的观远 BI 自动化套件当前已完成 runtime contract、extract runtime policy、workbook stage、publish stage，并新增 publish live verification 入口用于真实样本写入与读回校验。
+从 0 构建的观远 BI 自动化套件当前已完成 runtime contract、extract runtime policy、workbook stage、publish stage，并新增 publish live verification 入口用于真实样本写入与读回校验。该 worktree 只承担验证线职责；主线当前权威状态仍以 `D:\get_bi_data__1` 根仓库文档为准。
 
 ## Runtime Contract Baseline
 
@@ -83,7 +83,7 @@
 - 飞书应用至少需要 `sheets:spreadsheet` 或 `drive:drive` 写权限
 - 目标 spreadsheet 还必须给该应用开放文档访问权限
 
-当前真实样本 `全国执行` 为 `80 x 127`，已超过飞书单次 `100` 列上限，因此 live verification 会按列自动拆成多个矩形范围，再统一写入和读回。
+当前真实样本 `全国执行` 的早期观测边界是 `80 x 127`，但进入 publish source trim 后，真正参与 write plan、写入和 comparison 的 canonical 数据集为 `58 x 127`。由于列数仍超过飞书单次 `100` 列上限，因此 live verification 会按列自动拆成多个矩形范围，再统一写入和读回。
 
 ## Current Verification
 
@@ -98,5 +98,5 @@
 - stage gate evaluation
 - extract stage segmented runtime evidence
 - workbook contract, locator, loader, writer, ingest, transform foundation
-- publish contract, source reader, target planner, client adapter, stage, and runtime wiring foundation
+- publish contract, source reader, target planner, client adapter, publish writer, stage, and segment-aware manifest foundation
 - publish live verification spec, Feishu readback adapter, column-aware range planning, service archive, and thin real-sample entrypoint
