@@ -51,7 +51,7 @@ def test_publish_stage_manifest_records_segment_summary(tmp_path):
                     "column_offset": 0,
                 },
                 {
-                    "range_string": "子表1!CX3:EU3",
+                    "range_string": "子表1!CX3:DX3",
                     "row_count": 1,
                     "column_count": 27,
                     "row_offset": 0,
@@ -236,7 +236,7 @@ Implementation requirements:
 - multiple segments -> call `client.write_values_batch(...)`
 - set `segment_write_mode` to `single_range` or `batch_ranges`
 - return `write_segments` and stable `events`
-- on adapter failure, return `partial_write=True` when at least one segment already succeeded
+- on adapter failure, return `partial_write=True` only when there is confirmed prior request success; a single failed `values_batch_update` call remains `partial_write=False` because segment-level partial apply is not observable from the adapter boundary
 
 **Step 4: Run test to verify it passes**
 
@@ -273,9 +273,9 @@ def test_plan_range_segments_splits_large_dataset_by_rows_and_columns():
 
     assert [segment.range_string for segment in segments] == [
         "ySyhcD!B5:CW504",
-        "ySyhcD!CX5:EU504",
+        "ySyhcD!CX5:DX504",
         "ySyhcD!B505:CW524",
-        "ySyhcD!CX505:EU524",
+        "ySyhcD!CX505:DX524",
     ]
 ```
 

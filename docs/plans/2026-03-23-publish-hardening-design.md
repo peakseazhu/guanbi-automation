@@ -200,6 +200,12 @@ mapping manifest 中现有 `write_summary` 只覆盖：
 
 `publish_readback_mismatch` 继续留在 live verification，不进入本轮主线 hardening bundle。
 
+同时明确：
+
+- `partial_write` 只表达 runtime 已确认的请求级部分写入
+- 当前 `batch_ranges -> values_batch_update` 路径对 runtime 来说是单次适配器调用
+- 若该单次批量请求直接失败，runtime 无法证明哪些 segment 已在服务端部分落地，因此不会把这类失败误报为 `partial_write=True`
+
 ## 5. 代码边界
 
 本次预计涉及：

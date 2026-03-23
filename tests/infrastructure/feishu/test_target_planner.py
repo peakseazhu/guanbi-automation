@@ -144,6 +144,31 @@ def test_plan_range_segments_splits_wide_dataset_by_column_limit():
     ]
 
 
+def test_plan_range_segments_splits_large_dataset_by_rows_and_columns():
+    segments = plan_range_segments(
+        start_row=5,
+        start_col=2,
+        row_count=520,
+        column_count=127,
+        max_rows=500,
+        max_columns=100,
+        sheet_id="ySyhcD",
+    )
+
+    assert [segment.range_string for segment in segments] == [
+        "ySyhcD!B5:CW504",
+        "ySyhcD!CX5:DX504",
+        "ySyhcD!B505:CW524",
+        "ySyhcD!CX505:DX524",
+    ]
+    assert [(segment.row_offset, segment.column_offset) for segment in segments] == [
+        (0, 0),
+        (0, 100),
+        (500, 0),
+        (500, 100),
+    ]
+
+
 def test_replace_range_rejects_explicit_bounds_smaller_than_dataset_shape():
     dataset = PublishDataset(
         rows=[["x", 1], ["y", 2]],
