@@ -47,7 +47,7 @@
 
 - `main`
   - 最近一次功能性主线提交：`5db6b07 fix: promote streaming publish source reads`
-  - 当前 handoff 会以 docs-only 方式补入 `origin/main`，恢复时应先看最新 session archive，再回看该功能基线
+  - 当前最新 session archive 已以 docs-only commit 进入 `origin/main`，恢复时应先看最新 session archive，再回看该功能基线
 - `publish-stage-task1`
   - 当前验证线提交：`56c8641 fix: archive publish live verification results`
   - 已推送到：`origin/publish-stage-task1`
