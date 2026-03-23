@@ -1,6 +1,6 @@
 # Guanbi Automation
 
-从 0 构建的观远 BI 自动化套件当前已完成 runtime contract、extract runtime policy、workbook foundation 与 publish foundation。主线 `main` 只保留稳定阶段成果；真实资源落地验证继续在独立验证线推进。基于首个有效 publish live verification evidence archive，主线已同步 publish source reader 的 streaming-safe 读取修复。
+从 0 构建的观远 BI 自动化套件当前已完成 runtime contract、extract runtime policy、workbook foundation 与 publish foundation。主线 `main` 只保留稳定阶段成果；真实资源落地验证继续在独立验证线推进。基于首个有效 publish live verification evidence archive，主线已同步 `publish_source_reader` 的 streaming-safe 读取修复。最新一轮 validation branch promotion sweep 已确认：除该修复外，剩余 live verification 代码暂不直接回灌，下一批候选项应是完整的 `publish hardening` bundle，而不是零散 helper。
 
 ## Recovery Entry
 
@@ -19,9 +19,14 @@
 
 - `main` 是稳定基线
 - `.worktrees/publish-stage-task1` 是 publish live verification 验证线，不替代主线权威文档
+- 最新主线状态归档已前进到：
+  - `docs/archive/sessions/2026-03-23-validation-branch-promotion-sweep.md`
 - 验证线同时保留两类运行目录：
   - `runs/live_verification/publish/20260322T054012Z` 仍为空目录，只算历史运行足迹
   - `runs/live_verification/publish/20260323T022511Z` 是首个有效 evidence archive，`comparison.json` 已确认 `matches = true`
+- 当前最重要的新边界是：
+  - `58 x 127` 真实宽表已经证明后续必须做 row/column-aware publish hardening
+  - 但该能力下一次应以主线可消费的完整 bundle 进入，而不是先把 live verification helper 零散抬进 `main`
 
 ## Runtime Contract Baseline
 

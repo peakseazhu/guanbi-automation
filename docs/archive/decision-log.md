@@ -192,3 +192,24 @@
   - `main` 获得了被真实证据证明必要的 foundation 级稳定性修复。
   - 主线不会因为一次成功的真实样本验证，就把所有 live verification 脚手架一起并入。
   - 后续若要继续从验证线提升内容，仍必须先形成真实证据，再区分“通用正式能力”和“一次性验证资产”。
+
+## ADR-2026-03-23-19：剩余 publish live verification helper 不单独回灌，下一次只提升完整 publish hardening bundle
+
+- Status：Accepted
+- Context：在 `publish_source_reader` streaming-safe 修复回灌后，`publish-stage-task1` 相对 `main` 仍保留一批与真实样本验证直接相关的增量，包括：
+  - `FeishuSheetsClient.fetch_tenant_access_token`
+  - `FeishuSheetsClient.read_values`
+  - `FeishuSheetsClient.write_values_batch`
+  - `plan_range_segments`
+  - `PUBLISH_READBACK_MISMATCH`
+  - live verification spec / service / entrypoint
+  同时，真实 evidence archive `.worktrees/publish-stage-task1/runs/live_verification/publish/20260323T022511Z` 已证明当前样本是 `58 x 127`，写入时必须拆成 `100 + 27` 列区段，且 `comparison.json` 已确认 `matches = true`。但主线当前 publish stage 还没有真正消费 row/column-aware writer、batch write path 或 readback comparison contract；若把这些 helper 单独回灌，只会在 `main` 引入未被主流程使用的 dormant API。
+- Decision：从 2026-03-23 本轮 promotion sweep 起，剩余 publish live verification helper 不再单独回灌 `main`。下一次允许提升的对象固定为一个完整的 `publish hardening` bundle，至少需要同时满足：
+  - 主线 publish writer 实际消费 row/column-aware range planning
+  - 主线具备 batch write path
+  - 必要时再补主线可消费的 readback / mismatch contract
+  - fresh verification 可在 `main` 成立
+- Consequences：
+  - `main` 不会因为零散 helper 进入而被误写成“已具备 publish hardening”。
+  - `publish-stage-task1` 继续承担 live verification 与下一批 publish hardening 候选实现。
+  - 后续 selective promotion 的判断单位，从“单个 helper”前移为“可被主线真正消费的连通能力切片”。

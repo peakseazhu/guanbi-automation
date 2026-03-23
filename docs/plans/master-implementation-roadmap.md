@@ -276,7 +276,7 @@
 9. 当前验证线为：
    - `publish-stage-task1`
    - 继续承担 `publish live verification`
-   - 最近提交为：`350b903 feat: add publish live verification entry`
+   - 当前验证线提交：`56c8641 fix: archive publish live verification results`
    - 当前已完成 live verification 设计与代码路径：
       - spec / local spec
       - Feishu readback / batch write support
@@ -292,13 +292,23 @@
       - `.worktrees/publish-stage-task1/docs/archive/sessions/2026-03-22-publish-live-verification-implementation.md`
    - 验证线 fresh full suite 已恢复并更新为：
       - `PYTHONPATH='D:\get_bi_data__1\.worktrees\publish-stage-task1;D:\get_bi_data__1\.packages' + D:\miniconda3\envs\feishu-broadcast\python.exe -m pytest tests -v -p no:cacheprovider` -> `102 passed`
-10. 当前主线下一恢复点为：
+10. `2026-03-23 validation branch promotion sweep` 已完成：
+   - 已审查 `main..publish-stage-task1` 的剩余代码差异
+   - 本轮没有新的运行时代码回灌 `main`
+   - `fetch_tenant_access_token`、`read_values`、`write_values_batch`、`plan_range_segments` 与 `PUBLISH_READBACK_MISMATCH` 虽被真实样本证明有价值，但当前仍只被 live verification path 消费
+   - 下一批候选项必须是主线可实际消费的 `publish hardening` bundle，而不是零散 helper
+11. 当前主线下一恢复点为：
    - 保持 `main` 在 publish foundation + streaming-safe source reader 修复的稳定状态
-   - 后续只继续选择性吸收被真实证据证明必要、且不绑定本地资源的 foundation 能力
-11. 当前验证线下一恢复点为：
+   - 后续只继续选择性吸收被真实证据证明必要、且不绑定本地资源、且已被主流程实际消费的 foundation 能力
+   - 下一批候选 bundle 固定为：
+      - row/column-aware write planning
+      - batch write path
+      - 必要时再补主线可消费的 readback / mismatch contract
+12. 当前验证线下一恢复点为：
    - 保留 live verification local spec、real-sample entrypoint 与 evidence archive 在验证线
-   - 若继续推进新的提升项，仍先形成真实证据，再决定哪些内容值得回灌 `main`
-12. 在进入下一阶段时，仍然不允许：
+   - 保留本轮未回灌的 Feishu readback / batch write / range segmentation helper 在验证线
+   - 若继续推进新的提升项，先在验证线形成完整 `publish hardening` bundle，再决定哪些内容值得回灌 `main`
+13. 在进入下一阶段时，仍然不允许：
    - 回到 legacy `src/`
    - 把 extract runtime policy 退回单一 `extract_polling`
    - 把本地 spec、真实目标标识与 evidence archive 整体并入 `main`

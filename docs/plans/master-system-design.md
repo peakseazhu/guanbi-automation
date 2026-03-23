@@ -1,7 +1,7 @@
 # 观远 BI 自动化套件主设计文档
 
 > 状态：Active
-> 最近更新：2026-03-22
+> 最近更新：2026-03-23
 > 当前权威文档：
 > - `docs/plans/master-system-design.md`
 > - `docs/plans/master-implementation-roadmap.md`
@@ -716,6 +716,7 @@ publish v1 的执行顺序固定为：
 - `publish dataset` 是 source 与 target 之间的标准化数据层
 - mapping 是 publish 的最小执行与诊断单元
 - chunk 写入默认串行执行
+- 真实宽表一旦超过飞书单次写入列上限，必须继续按列或多个矩形范围切分；只按行分块不再视为足够
 
 当前默认风险护栏为：
 
@@ -723,6 +724,7 @@ publish v1 的执行顺序固定为：
 - 同一 batch / 同一 mapping / 同一目标的追加式重跑默认 `blocked`
 - `empty_source_policy` 默认 `skip`
 - 目标子表必须能被稳定解析，不允许模糊匹配后直接写入
+- row/column-aware write planning、batch write path 与相关错误语义，下一次只允许作为可被主线 publish writer 实际消费的 `publish hardening` bundle 进入；不再单独回灌 live verification helper
 
 ## 11. 错误处理与可观测性
 
@@ -811,7 +813,7 @@ publish v1 的执行顺序固定为：
 
 - `DS_ELEMENTS` 类型筛选器的候选值接口。
 - Workbook 大表写入时 file-based 安全阈值与回退策略。
-- 飞书写入 chunk 大小与 retry budget 的精确默认值。
+- 飞书写入 row/column chunk 默认值与 retry budget 的精确默认值。
 - `append_rows` 的后续业务键去重增强策略。
 
 ## 15. 参考证据清单

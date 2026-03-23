@@ -13,8 +13,9 @@
 5. `docs/plans/2026-03-22-mainline-validation-governance-design.md`
 6. `docs/plans/2026-03-22-repository-state-and-recovery-design.md`
 7. `docs/archive/sessions/2026-03-23-publish-live-verification-promotion.md`
-8. 本文档 `docs/archive/sessions/2026-03-23-next-session-handoff.md`
-9. 若继续验证线，再读：
+8. `docs/archive/sessions/2026-03-23-validation-branch-promotion-sweep.md`
+9. 本文档 `docs/archive/sessions/2026-03-23-next-session-handoff.md`
+10. 若继续验证线，再读：
    - `.worktrees/publish-stage-task1/README.md`
    - `.worktrees/publish-stage-task1/docs/plans/2026-03-22-publish-live-verification-design.md`
    - `.worktrees/publish-stage-task1/docs/plans/2026-03-22-publish-live-verification-implementation-plan.md`
@@ -47,7 +48,7 @@
 
 - `main`
   - 最近一次功能性主线提交：`5db6b07 fix: promote streaming publish source reads`
-  - 当前最新 session archive 已以 docs-only commit 进入 `origin/main`，恢复时应先看最新 session archive，再回看该功能基线
+  - 主线当前还包含后续 docs-only recovery / session commits；恢复时应先看最新 session archive，再回看该功能基线
 - `publish-stage-task1`
   - 当前验证线提交：`56c8641 fix: archive publish live verification results`
   - 已推送到：`origin/publish-stage-task1`
@@ -101,21 +102,28 @@ $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'
 
 如果新会话只做一件事，就先做这件事：
 
-- 梳理验证线里下一批“可能值得选择性回灌 `main` 的 foundation 候选项”
+- 在验证线把下一批 `publish hardening` 做成完整可验证 bundle，而不是继续拆小 helper 回灌
 
-判断标准固定为：
+当前 bundle 边界固定为：
 
-1. 已被真实证据证明必要
-2. 不依赖本机私有资源
-3. 属于通用 foundation 能力，而不是一次性验证脚手架
-4. 能在主线通过 fresh verification
+1. row/column-aware write planning
+2. batch write path
+3. 必要时再补主线可消费的 readback / mismatch contract
+4. 完成后再按真实证据与 fresh verification 判断哪些内容值得回灌 `main`
 
 ## 当前已明确留在验证线的内容
 
-- `.worktrees/publish-stage-task1/config/live_verification/publish/real_sample.local.yaml`
+- `.worktrees/publish-stage-task1/config/live_verification/publish/real_sample.local.yaml`（本地 ignored artifact，不是主线可跟踪资产）
+- `.worktrees/publish-stage-task1/config/live_verification/publish/real_sample.example.yaml`
+- `.worktrees/publish-stage-task1/guanbi_automation/domain/live_verification.py`
+- `.worktrees/publish-stage-task1/guanbi_automation/application/live_verification_spec.py`
+- `.worktrees/publish-stage-task1/guanbi_automation/application/publish_live_verification_service.py`
 - `.worktrees/publish-stage-task1/guanbi_automation/live_verification/publish_real_sample.py`
+- `.worktrees/publish-stage-task1/guanbi_automation/infrastructure/feishu/client.py` 中仅被 live verification path 消费的 readback / batch-write helper
+- `.worktrees/publish-stage-task1/guanbi_automation/infrastructure/feishu/target_planner.py` 中的 `plan_range_segments`
+- `.worktrees/publish-stage-task1/guanbi_automation/domain/runtime_errors.py` 中的 `PUBLISH_READBACK_MISMATCH`
 - `.worktrees/publish-stage-task1/docs/archive/sessions/2026-03-22-publish-live-verification-implementation.md`
-- `.worktrees/publish-stage-task1/runs/live_verification/publish/20260323T022511Z`
+- `.worktrees/publish-stage-task1/runs/live_verification/publish/20260323T022511Z`（本地 ignored artifact evidence，不是主线可跟踪资产）
 
 ## 当前执行约定
 
