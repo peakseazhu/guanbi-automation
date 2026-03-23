@@ -244,6 +244,80 @@ def test_publish_stage_records_target_loader_publish_client_error_as_failed_mapp
     assert target_writer_calls == []
 
 
+def test_publish_stage_records_source_reader_failure_as_failed_mapping(tmp_path: Path):
+    workbook_path = tmp_path / "result.xlsx"
+    workbook_path.write_bytes(b"placeholder")
+    target_loader_calls: list[str] = []
+    target_writer_calls: list[str] = []
+
+    def target_loader(*_args, **_kwargs) -> PublishTargetContext:
+        target_loader_calls.append("called")
+        return _target_context()
+
+    def target_writer(*_args, **_kwargs) -> PublishWriteResult:
+        target_writer_calls.append("called")
+        return _write_result(chunk_count=1, written_row_count=1)
+
+    stage = PublishStage(
+        source_reader=lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            ValueError("source workbook is unreadable")
+        ),
+        target_loader=target_loader,
+        target_writer=target_writer,
+    )
+
+    result = stage.run(
+        PlannedPublishRun(
+            batch_id="batch-001",
+            job_id="job-001",
+            workbook_path=workbook_path,
+            mappings=[_mapping_spec()],
+        )
+    )
+
+    assert result.status == "failed"
+    assert result.manifest["failed_mapping_count"] == 1
+    assert result.manifest["mappings"][0]["status"] == "failed"
+    assert result.manifest["mappings"][0]["final_error"]["code"] == RuntimeErrorCode.PUBLISH_SOURCE_READ_ERROR
+    assert result.manifest["mappings"][0]["source"]["resolved_range"] is None
+    assert target_loader_calls == []
+    assert target_writer_calls == []
+
+
+def test_publish_stage_records_target_loader_value_error_as_failed_mapping(tmp_path: Path):
+    workbook_path = tmp_path / "result.xlsx"
+    workbook_path.write_bytes(b"placeholder")
+    target_writer_calls: list[str] = []
+
+    def target_writer(*_args, **_kwargs) -> PublishWriteResult:
+        target_writer_calls.append("called")
+        return _write_result(chunk_count=1, written_row_count=1)
+
+    stage = PublishStage(
+        source_reader=lambda *_args, **_kwargs: _dataset(rows=[["store-a", 100]]),
+        target_loader=lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            ValueError("publish target dataset shape does not fit explicit bounds")
+        ),
+        target_writer=target_writer,
+    )
+
+    result = stage.run(
+        PlannedPublishRun(
+            batch_id="batch-001",
+            job_id="job-001",
+            workbook_path=workbook_path,
+            mappings=[_mapping_spec()],
+        )
+    )
+
+    assert result.status == "failed"
+    assert result.manifest["failed_mapping_count"] == 1
+    assert result.manifest["mappings"][0]["status"] == "failed"
+    assert result.manifest["mappings"][0]["final_error"]["code"] == RuntimeErrorCode.PUBLISH_RANGE_INVALID
+    assert result.manifest["mappings"][0]["target"]["resolved_target_range"] is None
+    assert target_writer_calls == []
+
+
 def test_pipeline_engine_delegates_to_publish_stage(tmp_path: Path):
     workbook_path = tmp_path / "result.xlsx"
     workbook_path.write_bytes(b"placeholder")

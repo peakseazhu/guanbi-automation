@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 
+import httpx
 import pytest
 from openpyxl import Workbook
 
@@ -121,9 +122,83 @@ def test_run_publish_runtime_normalizes_blank_ids_to_default_values(tmp_path: Pa
     assert result.batch_id == "publish-cli"
     assert result.job_id == _expected_job_id(workbook_path, spec_path)
     assert result.manifest is not None
-    assert result.manifest["mappings"][0]["target"]["sheet_name"] == "Fallback By Name"
+    assert result.manifest["mappings"][0]["target"]["sheet_id"] == "ySyhcD"
+    assert result.manifest["mappings"][0]["target"]["sheet_name"] == "Resolved By Id"
     assert resolved_ranges == ["Resolved By Id!B3:C3"]
     assert result.final_error is None
+
+
+def test_run_publish_runtime_normalizes_source_reader_failures_to_failed_result(tmp_path: Path):
+    workbook_path = _write_workbook(tmp_path)
+    spec_path = _write_publish_spec(tmp_path, write_mode="replace_range")
+
+    result = run_publish_runtime(
+        workbook_path=workbook_path,
+        spec_path=spec_path,
+        tenant_access_token="tenant-token",
+        source_reader=lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            ValueError("source workbook is unreadable")
+        ),
+        client_factory=lambda: _FakeSheetsClient(sheets=[{"sheet_id": "ySyhcD", "title": "子表1"}]),
+    )
+
+    assert result.status == "failed"
+    assert result.manifest is not None
+    assert result.manifest["failed_mapping_count"] == 1
+    assert result.manifest["mappings"][0]["status"] == "failed"
+    assert result.final_error is not None
+    assert result.final_error.code == RuntimeErrorCode.PUBLISH_SOURCE_READ_ERROR
+    assert result.final_error.message == "source workbook is unreadable"
+
+
+def test_run_publish_runtime_normalizes_target_planner_failures_to_failed_result(tmp_path: Path):
+    workbook_path = _write_publish_workbook(tmp_path)
+    spec_path = _write_publish_spec(
+        tmp_path,
+        write_mode="replace_range",
+        target_end_row=3,
+        target_end_col=2,
+    )
+
+    result = run_publish_runtime(
+        workbook_path=workbook_path,
+        spec_path=spec_path,
+        tenant_access_token="tenant-token",
+        client_factory=lambda: _FakeSheetsClient(sheets=[{"sheet_id": "ySyhcD", "title": "子表1"}]),
+    )
+
+    assert result.status == "failed"
+    assert result.manifest is not None
+    assert result.manifest["failed_mapping_count"] == 1
+    assert result.manifest["mappings"][0]["status"] == "failed"
+    assert result.final_error is not None
+    assert result.final_error.code == RuntimeErrorCode.PUBLISH_RANGE_INVALID
+    assert "dataset shape does not fit explicit bounds" in result.final_error.message
+
+
+def test_run_publish_runtime_normalizes_query_transport_failures_to_failed_result(tmp_path: Path):
+    workbook_path = _write_workbook(tmp_path)
+    spec_path = _write_publish_spec(tmp_path, write_mode="replace_range")
+
+    class _TransportFailingClient:
+        def query_sheets(self, *_args, **_kwargs):
+            raise httpx.ConnectError("query_sheets transport failed")
+
+    result = run_publish_runtime(
+        workbook_path=workbook_path,
+        spec_path=spec_path,
+        tenant_access_token="tenant-token",
+        client_factory=lambda: _TransportFailingClient(),
+        source_reader=lambda *_args, **_kwargs: _dataset(rows=[["store-a", 100]]),
+    )
+
+    assert result.status == "failed"
+    assert result.manifest is not None
+    assert result.manifest["failed_mapping_count"] == 1
+    assert result.manifest["mappings"][0]["status"] == "failed"
+    assert result.final_error is not None
+    assert result.final_error.code == RuntimeErrorCode.PUBLISH_WRITE_ERROR
+    assert result.final_error.message == "query_sheets transport failed"
 
 
 def test_run_publish_runtime_propagates_failed_status_from_writer_errors(tmp_path: Path):
@@ -291,6 +366,8 @@ def _write_publish_spec(
     file_name: str = "publish.yaml",
     target_sheet_id: str | None = "ySyhcD",
     target_sheet_name: str | None = None,
+    target_end_row: int | None = None,
+    target_end_col: int | None = None,
 ) -> Path:
     append_locator_lines = (
         "      append_locator_columns: [1]\n" if write_mode == "append_rows" else ""
@@ -301,6 +378,8 @@ def _write_publish_spec(
     target_sheet_name_line = (
         f"      sheet_name: {target_sheet_name}\n" if target_sheet_name is not None else ""
     )
+    target_end_row_line = f"      end_row: {target_end_row}\n" if target_end_row is not None else ""
+    target_end_col_line = f"      end_col: {target_end_col}\n" if target_end_col is not None else ""
     spec_path = tmp_path / file_name
     spec_path.write_text(
         "mappings:\n"
@@ -319,6 +398,8 @@ def _write_publish_spec(
         f"      write_mode: {write_mode}\n"
         "      start_row: 3\n"
         "      start_col: 2\n"
+        f"{target_end_row_line}"
+        f"{target_end_col_line}"
         f"{append_locator_lines}",
         encoding="utf-8",
     )

@@ -12,6 +12,7 @@ from guanbi_automation.bootstrap.settings import PublishSettings
 from guanbi_automation.domain.publish_contract import PublishDataset, PublishMappingSpec
 from guanbi_automation.domain.runtime_contract import RuntimeErrorInfo
 from guanbi_automation.domain.runtime_errors import RuntimeErrorCode
+from guanbi_automation.execution.manifest_builder import build_publish_manifest
 from guanbi_automation.execution.pipeline_engine import PipelineEngine
 from guanbi_automation.execution.stages.publish import (
     PlannedPublishRun,
@@ -126,14 +127,36 @@ def run_publish_runtime(
         extract_stage=_NullExtractStage(),
         publish_stage=publish_stage,
     )
-    stage_result = pipeline.run_publish(
-        PlannedPublishRun(
+    try:
+        stage_result = pipeline.run_publish(
+            PlannedPublishRun(
+                batch_id=resolved_batch_id,
+                job_id=resolved_job_id,
+                workbook_path=workbook_path,
+                mappings=spec.mappings,
+            )
+        )
+    except Exception as exc:  # pragma: no cover - stage should absorb mapping failures
+        final_error = RuntimeErrorInfo(
+            code=RuntimeErrorCode.PUBLISH_WRITE_ERROR,
+            message=str(exc) or exc.__class__.__name__,
+            retryable=False,
+            details={"exception_type": exc.__class__.__name__},
+        )
+        return PublishRuntimeResult(
+            status="failed",
             batch_id=resolved_batch_id,
             job_id=resolved_job_id,
-            workbook_path=workbook_path,
-            mappings=spec.mappings,
+            manifest=build_publish_manifest(
+                batch_id=resolved_batch_id,
+                job_id=resolved_job_id,
+                workbook_path=str(workbook_path),
+                mappings=[],
+                final_status="failed",
+                final_error=final_error,
+            ),
+            final_error=final_error,
         )
-    )
 
     return PublishRuntimeResult(
         status=stage_result.status,

@@ -8,6 +8,7 @@ from typing import Any, Callable
 
 from guanbi_automation.domain.publish_contract import PublishDataset, PublishMappingSpec
 from guanbi_automation.domain.runtime_contract import RuntimeErrorInfo
+from guanbi_automation.domain.runtime_errors import RuntimeErrorCode
 from guanbi_automation.execution.manifest_builder import build_publish_manifest
 from guanbi_automation.infrastructure.feishu.client import PublishClientError
 from guanbi_automation.infrastructure.feishu.target_planner import ResolvedPublishTarget
@@ -65,7 +66,26 @@ class PublishStage:
         mapping_manifests: list[dict[str, Any]] = []
 
         for mapping in planned_run.mappings:
-            dataset = self._source_reader(planned_run.workbook_path, mapping.source)
+            try:
+                dataset = self._source_reader(planned_run.workbook_path, mapping.source)
+            except Exception as exc:
+                mapping_manifests.append(
+                    _build_mapping_manifest(
+                        mapping=mapping,
+                        dataset=None,
+                        target_context=None,
+                        write_result=None,
+                        status="failed",
+                        final_error=_normalize_stage_error(
+                            exc,
+                            default_code=RuntimeErrorCode.PUBLISH_SOURCE_READ_ERROR,
+                        ),
+                        empty_source=False,
+                        empty_source_policy=None,
+                    )
+                )
+                continue
+
             mapping_manifests.append(
                 self._publish_mapping(
                     workbook_path=planned_run.workbook_path,
@@ -123,6 +143,20 @@ class PublishStage:
                 empty_source=empty_source,
                 empty_source_policy=self._empty_source_policy if empty_source else None,
             )
+        except Exception as exc:
+            return _build_mapping_manifest(
+                mapping=mapping,
+                dataset=dataset,
+                target_context=None,
+                write_result=None,
+                status="failed",
+                final_error=_normalize_stage_error(
+                    exc,
+                    default_code=RuntimeErrorCode.PUBLISH_WRITE_ERROR,
+                ),
+                empty_source=empty_source,
+                empty_source_policy=self._empty_source_policy if empty_source else None,
+            )
         if target_context.append_rerun_error is not None:
             return _build_mapping_manifest(
                 mapping=mapping,
@@ -135,12 +169,27 @@ class PublishStage:
                 empty_source_policy=self._empty_source_policy if empty_source else None,
             )
 
-        write_result = self._target_writer(
-            workbook_path=workbook_path,
-            mapping=mapping,
-            dataset=dataset,
-            target_context=target_context,
-        )
+        try:
+            write_result = self._target_writer(
+                workbook_path=workbook_path,
+                mapping=mapping,
+                dataset=dataset,
+                target_context=target_context,
+            )
+        except Exception as exc:
+            return _build_mapping_manifest(
+                mapping=mapping,
+                dataset=dataset,
+                target_context=target_context,
+                write_result=None,
+                status="failed",
+                final_error=_normalize_stage_error(
+                    exc,
+                    default_code=RuntimeErrorCode.PUBLISH_WRITE_ERROR,
+                ),
+                empty_source=empty_source,
+                empty_source_policy=self._empty_source_policy if empty_source else None,
+            )
         status = "failed" if write_result.final_error is not None else "completed"
         return _build_mapping_manifest(
             mapping=mapping,
@@ -157,7 +206,7 @@ class PublishStage:
 def _build_mapping_manifest(
     *,
     mapping: PublishMappingSpec,
-    dataset: PublishDataset,
+    dataset: PublishDataset | None,
     target_context: PublishTargetContext | None,
     write_result: PublishWriteResult | None,
     status: str,
@@ -171,27 +220,35 @@ def _build_mapping_manifest(
         resolved_target=resolved_target,
         write_result=write_result,
     )
+    resolved_sheet_id = _normalize_optional_target_value(
+        resolved_target.sheet_id if resolved_target is not None else mapping.target.sheet_id
+    )
+    resolved_sheet_name = _normalize_optional_target_value(
+        resolved_target.sheet_title if resolved_target is not None else mapping.target.sheet_name
+    )
+    row_count = dataset.row_count if dataset is not None else 0
+    column_count = dataset.column_count if dataset is not None else 0
     manifest: dict[str, Any] = {
         "mapping_id": mapping.mapping_id,
         "source": {
             "sheet_name": mapping.source.sheet_name,
             "read_mode": mapping.source.read_mode,
-            "resolved_range": dataset.source_range,
+            "resolved_range": dataset.source_range if dataset is not None else None,
             "header_mode": mapping.source.header_mode,
         },
         "target": {
             "spreadsheet_token": mapping.target.spreadsheet_token,
-            "sheet_id": mapping.target.sheet_id,
-            "sheet_name": mapping.target.sheet_name,
+            "sheet_id": resolved_sheet_id,
+            "sheet_name": resolved_sheet_name,
             "write_mode": mapping.target.write_mode,
             "resolved_target_range": (
                 resolved_target.range_string if resolved_target is not None else None
             ),
         },
         "dataset_shape": {
-            "row_count": dataset.row_count,
-            "column_count": dataset.column_count,
-            "cell_count": dataset.row_count * dataset.column_count,
+            "row_count": row_count,
+            "column_count": column_count,
+            "cell_count": row_count * column_count,
         },
         "write_summary": {
             "chunk_count": write_result.chunk_count if write_result is not None else 0,
@@ -225,14 +282,14 @@ def _build_mapping_manifest(
         manifest["new_last_row"] = (
             resolved_target.end_row if resolved_target is not None and status == "completed" else None
         )
-        manifest["source_fingerprint"] = _fingerprint_rows(dataset.rows)
+        manifest["source_fingerprint"] = _fingerprint_rows(dataset.rows) if dataset is not None else None
 
     return manifest
 
 
 def _resolve_write_segments(
     *,
-    dataset: PublishDataset,
+    dataset: PublishDataset | None,
     resolved_target: ResolvedPublishTarget | None,
     write_result: PublishWriteResult | None,
 ) -> list[dict[str, Any]]:
@@ -281,4 +338,32 @@ def _resolve_final_error(mappings: list[dict[str, Any]]) -> RuntimeErrorInfo | N
 def _fingerprint_rows(rows: list[list[object]]) -> str:
     serialized = json.dumps(rows, ensure_ascii=False, separators=(",", ":"), default=str)
     return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+
+
+def _normalize_stage_error(
+    error: Exception,
+    *,
+    default_code: RuntimeErrorCode,
+) -> RuntimeErrorInfo:
+    if isinstance(error, PublishClientError):
+        return error.error
+
+    message = str(error) or error.__class__.__name__
+    error_code = default_code
+    if isinstance(error, ValueError) and message.startswith("publish target "):
+        error_code = RuntimeErrorCode.PUBLISH_RANGE_INVALID
+
+    return RuntimeErrorInfo(
+        code=error_code,
+        message=message,
+        retryable=False,
+        details={"exception_type": error.__class__.__name__},
+    )
+
+
+def _normalize_optional_target_value(value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = value.strip()
+    return normalized or None
 
