@@ -34,7 +34,7 @@
 - `README.md`
 - `pyproject.toml`
 
-当前 mainline promotion target 已包含：
+当前 `main` 已包含：
 
 - runtime contract
 - extract runtime policy
@@ -42,9 +42,9 @@
 - publish foundation
 - publish hardening bundle v1
 
-最新一次已确认的 mainline promotion fresh automated verification 结果为：
+最新一次已确认的主线 fresh automated verification 结果为：
 
-- `PYTHONPATH='D:\get_bi_data__1\.worktrees\publish-hardening-promotion;D:\get_bi_data__1\.packages' + D:\miniconda3\envs\feishu-broadcast\python.exe -m pytest tests -v -p no:cacheprovider` -> `98 passed`
+- `PYTHONPATH='D:\get_bi_data__1;D:\get_bi_data__1\.packages' + D:\miniconda3\envs\feishu-broadcast\python.exe -m pytest tests -v -p no:cacheprovider` -> `98 passed`
 
 当前还必须同时记住：
 
@@ -161,10 +161,10 @@
 
 ### 3.1 主线 `main`
 
-当前主线目标状态是：
+当前 `main` 的真实状态是：
 
 - `publish foundation` 已从验证线萃取进入主线
-- `publish hardening bundle v1` 已在干净的 selective promotion 载体中收口
+- `publish hardening bundle v1` 已通过 PR #2 合入 `main`
 - 主线只保留稳定阶段成果
 - 未把 `publish live verification` 的脚手架和未完成证据直接并回
 
@@ -291,7 +291,7 @@
 
 截至 2026-03-23，当前仓库的最准确认知是：
 
-- `main` 仍是稳定基线，且当前主线目标状态已前进到 `publish foundation + publish hardening bundle v1`
+- `main` 仍是稳定基线，且当前状态已前进到 `publish foundation + publish hardening bundle v1`
 - `publish-stage-task1` 仍是继续向真实资源推进的验证线，且现在已具备首个有效 evidence archive 与最终 implementation archive
 - 当前 shell 仍没有 PATH 级 `pytest`，但主线与验证线都已经恢复出可复现的 fresh verification 路径
 - 历史归档继续保留，但恢复入口必须先走权威文档与最新状态对账

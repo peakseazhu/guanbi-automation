@@ -258,7 +258,7 @@
 2. `extract runtime policy` 已按 `docs/plans/2026-03-20-extract-runtime-policy-implementation-plan.md` 完成 Task 1-7，并通过全量测试验证。
 3. `workbook detailed design` 与 `docs/plans/2026-03-21-workbook-stage-implementation-plan.md` 已完成，并通过 focused verification 与 full suite 验证。
 4. `publish stage detailed design` 与 `docs/plans/2026-03-21-publish-stage-implementation-plan.md` 已完成设计收敛。
-5. `publish foundation` 已从 `publish-stage-task1` worktree 萃取并进入 `main`，当前主线目标状态已包含：
+5. `publish foundation` 已从 `publish-stage-task1` worktree 萃取并进入 `main`，当前主线已包含：
    - publish contract
    - publish source reader（含 streaming-safe 读取修复）
    - feishu target planner 与 row/column-aware `plan_range_segments(...)`
@@ -267,14 +267,15 @@
    - publish stage
    - publish runtime wiring
    - mapping manifest `segment_count / segment_write_mode / write_segments`
-6. 当前主线选择性 promotion 载体为：
-   - `publish-hardening-promotion`
-   - 基线：`main@0003965`
-   - selective promotion 来源：`publish-stage-task1@b1bca69`
-7. 当前 mainline promotion focused verification 已确认：
+6. `publish hardening bundle v1` 已通过 clean PR 合入 `main`：
+   - promotion 载体：`publish-hardening-promotion`
+   - 来源：`publish-stage-task1@b1bca69`
+   - merge commit：`5ac9b38 Merge pull request #2 from peakseazhu/publish-hardening-promotion`
+   - merged PR：`#2 feat: promote publish hardening bundle`
+7. 本轮 mainline promotion focused verification 已确认：
    - `PYTHONPATH='D:\get_bi_data__1\.worktrees\publish-hardening-promotion;D:\get_bi_data__1\.packages' + D:\miniconda3\envs\feishu-broadcast\python.exe -m pytest tests/bootstrap/test_settings.py tests/infrastructure/feishu/test_client.py tests/infrastructure/feishu/test_target_planner.py tests/infrastructure/feishu/test_publish_writer.py tests/execution/test_publish_stage.py -v -p no:cacheprovider` -> `33 passed`
-8. 当前 mainline promotion full suite 已确认：
-   - `PYTHONPATH='D:\get_bi_data__1\.worktrees\publish-hardening-promotion;D:\get_bi_data__1\.packages' + D:\miniconda3\envs\feishu-broadcast\python.exe -m pytest tests -v -p no:cacheprovider` -> `98 passed`
+8. 合并后主线 fresh full suite 已确认：
+   - `PYTHONPATH='D:\get_bi_data__1;D:\get_bi_data__1\.packages' + D:\miniconda3\envs\feishu-broadcast\python.exe -m pytest tests -v -p no:cacheprovider` -> `98 passed`
 9. 主线当前治理规则固定为：
    - `main` 只保留稳定阶段成果
    - 真实资源落地验证留在独立验证线推进

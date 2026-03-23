@@ -1,6 +1,6 @@
 # Guanbi Automation
 
-从 0 构建的观远 BI 自动化套件当前已完成 runtime contract、extract runtime policy、workbook foundation、publish foundation，并基于首个有效 publish live verification evidence archive 收口 `publish hardening bundle v1`。当前主线目标状态已包含 `publish_source_reader` 的 streaming-safe 读取修复、concrete Feishu publish writer、row/column-aware segment planning、`values_batch_update` 批量写入路径，以及 segment-aware publish manifest surface；真实资源 readback/comparison 与 live verification runtime 继续在独立验证线推进。
+从 0 构建的观远 BI 自动化套件当前已完成 runtime contract、extract runtime policy、workbook foundation、publish foundation，并基于首个有效 publish live verification evidence archive 收口并合入 `publish hardening bundle v1`。当前 `main` 已包含 `publish_source_reader` 的 streaming-safe 读取修复、concrete Feishu publish writer、row/column-aware segment planning、`values_batch_update` 批量写入路径，以及 segment-aware publish manifest surface；真实资源 readback/comparison 与 live verification runtime 继续在独立验证线推进。
 
 ## Recovery Entry
 
@@ -20,7 +20,7 @@
 - `main` 是稳定基线
 - `.worktrees/publish-stage-task1` 是 publish live verification 验证线，不替代主线权威文档
 - 最新主线状态归档已前进到：
-  - `docs/archive/sessions/2026-03-23-publish-hardening-promotion.md`
+  - `docs/archive/sessions/2026-03-23-publish-hardening-mainline-merge.md`
 - 验证线同时保留两类运行目录：
   - `runs/live_verification/publish/20260322T054012Z` 仍为空目录，只算历史运行足迹
   - `runs/live_verification/publish/20260323T022511Z` 是首个有效 evidence archive，`comparison.json` 已确认 `matches = true`

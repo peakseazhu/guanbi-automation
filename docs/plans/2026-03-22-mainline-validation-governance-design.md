@@ -117,7 +117,7 @@
 - `.worktrees/publish-stage-task1/config/live_verification/publish/real_sample.local.yaml` 已锁定真实 workbook/source/target
 - `.worktrees/publish-stage-task1/runs/live_verification/publish/20260322T054012Z` 已存在运行足迹目录，但仍为空，因此继续只算历史运行足迹
 - `.worktrees/publish-stage-task1/runs/live_verification/publish/20260323T022511Z` 已形成首个可复查 evidence archive，`comparison.json` 已确认 `matches = true`
-- 基于该证据与后续 hardening 实现收口，当前已进入主线目标状态的内容为：
+- 基于该证据与后续 hardening 实现收口，当前已进入 `main` 的内容为：
   - `publish_source_reader` 的 streaming-safe 读取修复
   - `PublishSettings.chunk_column_limit=100`
   - row/column-aware `plan_range_segments(...)`
