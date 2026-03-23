@@ -35,14 +35,17 @@ def run_publish_runtime(
     source_reader: Callable[..., Any] | None = None,
     target_writer: Callable[..., Any] | None = None,
 ) -> PublishRuntimeResult:
-    resolved_batch_id = batch_id if batch_id is not None else "publish-cli"
-    resolved_job_id = (
-        job_id
-        if job_id is not None
-        else _default_job_id(
-            workbook_path=workbook_path,
-            spec_path=spec_path,
-        )
+    default_job_id = _default_job_id(
+        workbook_path=workbook_path,
+        spec_path=spec_path,
+    )
+    resolved_batch_id = _normalize_identifier(
+        batch_id,
+        default_value="publish-cli",
+    )
+    resolved_job_id = _normalize_identifier(
+        job_id,
+        default_value=default_job_id,
     )
 
     if workbook_path is None:
@@ -87,10 +90,11 @@ def run_publish_runtime(
 
     _ = client_factory, source_reader, target_writer
 
-    return PublishRuntimeResult(
-        status="completed",
+    return _preflight_failure(
         batch_id=resolved_batch_id,
         job_id=resolved_job_id,
+        message="mainline publish runtime stage wiring is not implemented yet",
+        details={"stage_name": "publish"},
     )
 
 
@@ -111,6 +115,12 @@ def _resolved_path_key(path: Path | None, *, missing_placeholder: str) -> str:
     if path is None:
         return missing_placeholder
     return str(Path(path).resolve())
+
+
+def _normalize_identifier(value: str | None, *, default_value: str) -> str:
+    if value is None or not value.strip():
+        return default_value
+    return value
 
 
 def _preflight_failure(

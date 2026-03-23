@@ -54,13 +54,37 @@ def test_run_publish_runtime_uses_deterministic_default_ids(tmp_path: Path):
     )
 
     assert first.stage_name == "publish"
-    assert first.status == "completed"
+    assert first.status == "preflight_failed"
     assert first.batch_id == "publish-cli"
     assert first.job_id == _expected_job_id(workbook_path, spec_path)
     assert first.manifest is None
-    assert first.final_error is None
+    assert first.final_error is not None
+    assert first.final_error.code == RuntimeErrorCode.CONFIGURATION_ERROR
+    assert "not implemented yet" in first.final_error.message
     assert second.batch_id == first.batch_id
     assert second.job_id == first.job_id
+
+
+def test_run_publish_runtime_normalizes_blank_ids_to_default_values(tmp_path: Path):
+    workbook_path = _write_workbook(tmp_path)
+    spec_path = _write_publish_spec(tmp_path, write_mode="replace_range")
+
+    result = run_publish_runtime(
+        workbook_path=workbook_path,
+        spec_path=spec_path,
+        tenant_access_token="tenant-token",
+        batch_id="   ",
+        job_id="",
+    )
+
+    assert result.stage_name == "publish"
+    assert result.status == "preflight_failed"
+    assert result.batch_id == "publish-cli"
+    assert result.job_id == _expected_job_id(workbook_path, spec_path)
+    assert result.manifest is None
+    assert result.final_error is not None
+    assert result.final_error.code == RuntimeErrorCode.CONFIGURATION_ERROR
+    assert "not implemented yet" in result.final_error.message
 
 
 @pytest.mark.parametrize(
