@@ -32,3 +32,10 @@ def test_publish_settings_default_to_skip_empty_sources_and_positive_chunk_limit
 
     assert settings.chunk_row_limit > 0
     assert settings.empty_source_policy == "skip"
+
+
+def test_publish_settings_include_column_chunk_limit():
+    settings = PublishSettings()
+
+    assert settings.chunk_row_limit > 0
+    assert settings.chunk_column_limit == 100

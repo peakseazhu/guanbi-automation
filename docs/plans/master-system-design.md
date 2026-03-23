@@ -724,7 +724,10 @@ publish v1 的执行顺序固定为：
 - 同一 batch / 同一 mapping / 同一目标的追加式重跑默认 `blocked`
 - `empty_source_policy` 默认 `skip`
 - 目标子表必须能被稳定解析，不允许模糊匹配后直接写入
-- row/column-aware write planning、batch write path 与相关错误语义，下一次只允许作为可被主线 publish writer 实际消费的 `publish hardening` bundle 进入；不再单独回灌 live verification helper
+- `58 x 127` 真实宽表约束已经在主线 `publish hardening bundle v1` 中产品化，`chunk_column_limit` 当前默认值为 `100`
+- `publish_writer` 会消费 `plan_range_segments(...)`；单段范围走 `write_values(...)`，多段范围走 `values_batch_update(...)`
+- mapping manifest 当前会记录 `segment_count`、`segment_write_mode` 与 `write_segments`
+- readback / comparison contract 仍留在 validation line，不作为当前主线 publish runtime 的默认边界
 
 ## 11. 错误处理与可观测性
 
@@ -813,7 +816,8 @@ publish v1 的执行顺序固定为：
 
 - `DS_ELEMENTS` 类型筛选器的候选值接口。
 - Workbook 大表写入时 file-based 安全阈值与回退策略。
-- 飞书写入 row/column chunk 默认值与 retry budget 的精确默认值。
+- 飞书写入 `chunk_row_limit=500` 与 retry budget 的精确默认值是否还需要继续调优。
+- readback / comparison contract 是否需要进入 `main`，仍取决于 validation line 的后续证据与主线消费者。
 - `append_rows` 的后续业务键去重增强策略。
 
 ## 15. 参考证据清单

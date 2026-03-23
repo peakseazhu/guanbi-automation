@@ -34,16 +34,17 @@
 - `README.md`
 - `pyproject.toml`
 
-当前 `main` 已包含：
+当前 mainline promotion target 已包含：
 
 - runtime contract
 - extract runtime policy
 - workbook foundation
 - publish foundation
+- publish hardening bundle v1
 
-最新一次已确认的主线 fresh automated verification 结果为：
+最新一次已确认的 mainline promotion fresh automated verification 结果为：
 
-- `PYTHONPATH='D:\get_bi_data__1;D:\get_bi_data__1\.packages' + D:\miniconda3\envs\feishu-broadcast\python.exe -m pytest tests -v -p no:cacheprovider` -> `87 passed`
+- `PYTHONPATH='D:\get_bi_data__1\.worktrees\publish-hardening-promotion;D:\get_bi_data__1\.packages' + D:\miniconda3\envs\feishu-broadcast\python.exe -m pytest tests -v -p no:cacheprovider` -> `98 passed`
 
 当前还必须同时记住：
 
@@ -112,7 +113,7 @@
 
 - publish live verification 设计
 - live verification spec 与本地 real-sample spec
-- Feishu readback / batch write support
+- Feishu readback / comparison support
 - publish live verification service
 - real-sample entrypoint
 - 真实样本写入 / 读回 / comparison
@@ -160,30 +161,33 @@
 
 ### 3.1 主线 `main`
 
-当前 `main` 的真实状态是：
+当前主线目标状态是：
 
 - `publish foundation` 已从验证线萃取进入主线
+- `publish hardening bundle v1` 已在干净的 selective promotion 载体中收口
 - 主线只保留稳定阶段成果
 - 未把 `publish live verification` 的脚手架和未完成证据直接并回
 
 主线已经包含：
 
 - publish contract
-- publish source reader
-- feishu target planner
-- feishu sheets client adapter
+- publish source reader（含 streaming-safe 读取修复）
+- feishu target planner 与 row/column-aware `plan_range_segments(...)`
+- feishu sheets client adapter（含最小 `write_values_batch(...)` 路径）
+- concrete publish writer
 - publish stage
 - publish runtime wiring
+- mapping manifest `segment_count / segment_write_mode / write_segments`
 
 ### 3.2 验证线 `publish-stage-task1`
 
 当前验证线已经完成：
 
 - 最近提交：
-  - `350b903 feat: add publish live verification entry`
+  - `b1bca69 docs: archive publish hardening implementation`
 - publish live verification design
 - live verification spec loader
-- Feishu readback / batch write support
+- Feishu readback support
 - publish live verification service
 - real sample entrypoint
 - 本地 real-sample spec：
@@ -196,6 +200,10 @@
   - `comparison.json -> matches = true`
 - live verification 最终 implementation archive：
   - `.worktrees/publish-stage-task1/docs/archive/sessions/2026-03-22-publish-live-verification-implementation.md`
+- publish hardening implementation archive：
+  - `.worktrees/publish-stage-task1/docs/archive/sessions/2026-03-23-publish-hardening-implementation.md`
+- validation line fresh full suite：
+  - `PYTHONPATH='D:\get_bi_data__1\.worktrees\publish-stage-task1;D:\get_bi_data__1\.packages' + D:\miniconda3\envs\feishu-broadcast\python.exe -m pytest tests -v -p no:cacheprovider` -> `110 passed`
 
 这意味着验证线当前状态是：
 
@@ -254,23 +262,19 @@
 
 ### 6.1 主线下一步
 
-主线当前不应把 live verification 脚手架整体并入，而应：
+主线当前仍不应把 live verification 脚手架整体并入，而应：
 
-- 保持稳定
-- 只选择性提升已经被真实证据证明的 foundation 级能力
-
-当前已完成的首个选择性提升为：
-
-- `publish_source_reader` 的 streaming-safe 读取修复
-- 对应回归测试
+- 保持 `publish foundation + publish hardening bundle v1` 的稳定状态
+- 只继续选择性提升已经被真实证据证明、且已被主流程实际消费的 foundation 级能力
+- readback / comparison contract 只有在主线出现明确消费者后再进入下一轮 selective promotion 判断
 
 ### 6.2 验证线下一步
 
 验证线当前下一合理入口是：
 
 - 保留 `20260322T054012Z` 为空足迹目录的历史事实
-- 以 `20260323T022511Z` 作为首个有效 evidence archive 继续推进后续判断
-- 若继续提升内容到 `main`，仍先做真实证据，再区分通用能力与本地验证资产
+- 以 `20260323T022511Z` 作为首个有效 evidence archive、以 `2026-03-23-publish-hardening-implementation.md` 作为最新实现归档继续推进后续判断
+- 若继续提升内容到 `main`，仍先做真实证据，再区分可被主线消费的通用能力与本地验证资产
 
 ## 7. 当前仍需持续跟踪的缺口
 
@@ -287,7 +291,7 @@
 
 截至 2026-03-23，当前仓库的最准确认知是：
 
-- `main` 仍是稳定基线，并已回灌首个由真实证据证明必要的 publish source foundation 修复
+- `main` 仍是稳定基线，且当前主线目标状态已前进到 `publish foundation + publish hardening bundle v1`
 - `publish-stage-task1` 仍是继续向真实资源推进的验证线，且现在已具备首个有效 evidence archive 与最终 implementation archive
 - 当前 shell 仍没有 PATH 级 `pytest`，但主线与验证线都已经恢复出可复现的 fresh verification 路径
 - 历史归档继续保留，但恢复入口必须先走权威文档与最新状态对账

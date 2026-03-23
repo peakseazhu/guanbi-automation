@@ -18,6 +18,20 @@ class ResolvedPublishTarget:
     previous_last_row: int | None = None
 
 
+@dataclass(frozen=True)
+class PlannedRangeSegment:
+    sheet_id: str
+    range_string: str
+    start_row: int
+    start_col: int
+    end_row: int
+    end_col: int
+    row_count: int
+    column_count: int
+    row_offset: int
+    column_offset: int
+
+
 def resolve_replace_sheet(
     *,
     target: PublishTargetSpec,
@@ -81,6 +95,57 @@ def chunk_publish_rows(
         rows[index:index + chunk_row_limit]
         for index in range(0, len(rows), chunk_row_limit)
     ]
+
+
+def plan_range_segments(
+    *,
+    start_row: int,
+    start_col: int,
+    row_count: int,
+    column_count: int,
+    max_rows: int,
+    max_columns: int,
+    sheet_id: str,
+) -> list[PlannedRangeSegment]:
+    if max_rows < 1:
+        raise ValueError("max_rows must be positive")
+    if max_columns < 1:
+        raise ValueError("max_columns must be positive")
+    if row_count < 1 or column_count < 1:
+        return []
+
+    segments: list[PlannedRangeSegment] = []
+    for row_offset in range(0, row_count, max_rows):
+        segment_row_count = min(max_rows, row_count - row_offset)
+        segment_start_row = start_row + row_offset
+        segment_end_row = segment_start_row + segment_row_count - 1
+
+        for column_offset in range(0, column_count, max_columns):
+            segment_column_count = min(max_columns, column_count - column_offset)
+            segment_start_col = start_col + column_offset
+            segment_end_col = segment_start_col + segment_column_count - 1
+            segments.append(
+                PlannedRangeSegment(
+                    sheet_id=sheet_id,
+                    range_string=_build_a1_range(
+                        sheet_id,
+                        segment_start_row,
+                        segment_start_col,
+                        segment_end_row,
+                        segment_end_col,
+                    ),
+                    start_row=segment_start_row,
+                    start_col=segment_start_col,
+                    end_row=segment_end_row,
+                    end_col=segment_end_col,
+                    row_count=segment_row_count,
+                    column_count=segment_column_count,
+                    row_offset=row_offset,
+                    column_offset=column_offset,
+                )
+            )
+
+    return segments
 
 
 def _resolve_bounded_target(
