@@ -76,7 +76,7 @@
 
 ### 4.2 本次切片要让 mainline consumer 正式接通的能力
 
-- 从 YAML run spec 读取 publish 执行输入
+- 从 YAML publish spec 读取 publish mappings
 - 显式接收 `tenant_access_token`
 - 对 `replace_sheet` / `replace_range` 进行真实 runtime wiring
 - 通过 `PipelineEngine.run_publish(...)` 执行 `PublishStage`
@@ -116,7 +116,7 @@
 因此第一版 consumer 的固定策略是：
 
 - 继续保留 `append_rows` contract / planner / stage safety tests
-- 只要 run spec 中出现任一 `append_rows` mapping，就在 consumer 级预校验阶段整次失败
+- 只要 publish spec 中出现任一 `append_rows` mapping，就在 consumer 级预校验阶段整次失败
 - 返回稳定、显式、可测试的错误结果
 
 ## 6. 运行形态
@@ -135,34 +135,93 @@
 
 若 `batch_id` / `job_id` 未显式传入，consumer 需要生成稳定默认值，避免调用方为了最小试跑还要额外准备无关元数据。
 
+默认值规则固定为：
+
+- `batch_id` 默认恒定为 `publish-cli`
+- `job_id` 默认由 `sha256("<resolved workbook path>|<resolved spec path>")[:12]` 生成，并写成 `publish-<digest12>`
+
 ### 6.2 输出形态
 
-CLI 输出固定为结构化结果，而不是人类导向日志堆叠：
+CLI 输出固定为统一的 runtime result envelope，而不是“有时输出 manifest，有时输出错误文本”：
 
-- stdout 输出 publish stage manifest JSON
-- 退出码语义固定：
-  - `0`：`completed`
-  - 非 `0`：`blocked` 或 `failed`
+```json
+{
+  "stage_name": "publish",
+  "status": "preflight_failed|completed|blocked|failed",
+  "batch_id": "publish-cli",
+  "job_id": "publish-12hexchars",
+  "manifest": {},
+  "final_error": null
+}
+```
 
-这样后续 shell、调度器或外层脚本都可以直接消费结果，而不需要先解析不稳定文本。
+字段规则固定为：
+
+- `stage_name` 固定为 `publish`
+- `status` 只允许 `preflight_failed`、`completed`、`blocked`、`failed`
+- `manifest`
+  - preflight 失败时为 `null`
+  - 进入 `PublishStage` 后为完整 stage manifest
+- `final_error`
+  - 成功时为 `null`
+  - 失败时为 `RuntimeErrorInfo` 结构
+
+退出码语义固定：
+
+- `0`：`completed`
+- `1`：`blocked` 或 `failed`
+- `2`：`preflight_failed`
+
+这样后续 shell、调度器或外层脚本都可以直接消费稳定 JSON，而不需要区分“这次失败发生在 parser、service 还是 stage”。
 
 ## 7. 架构分解
 
 ### 7.1 `publish_runtime_spec`
 
-新增一个最小 YAML loader 与 run spec model，只承载 mainline consumer 所需字段：
+新增一个最小 YAML loader 与 publish spec model，只承载 mainline consumer 所需的 mapping 声明：
 
-- workbook 路径
+- source 信息
+- target 信息
 - publish mappings
-- spreadsheet / target 信息
+
+workbook 路径不进入 YAML spec，而是由 CLI 显式传入，避免同一轮运行同时出现两份 workbook 真相。
 
 它不应混入 live verification 字段，也不依赖验证线 domain model。
+
+YAML 顶层结构固定为：
+
+```yaml
+mappings:
+  - mapping_id: publish-sales
+    source:
+      source_id: sales-sheet
+      sheet_name: 计算表1
+      read_mode: sheet
+      start_row: 2
+      start_col: 1
+      header_mode: exclude
+    target:
+      spreadsheet_token: sheet-token
+      sheet_id: ySyhcD
+      write_mode: replace_range
+      start_row: 3
+      start_col: 2
+```
+
+字段语义固定为：
+
+- 顶层必须是一个 YAML object，且必须包含 `mappings`
+- `mappings[*]` 直接复用现有 `PublishMappingSpec`
+- `source` 直接复用现有 `PublishSourceSpec`
+- `target` 直接复用现有 `PublishTargetSpec`
+
+第一版实现不额外发明第二套 consumer 专属 mapping 字段。
 
 ### 7.2 `publish_runtime_service`
 
 新增一个 service 负责：
 
-1. 解析 run spec
+1. 解析 publish spec
 2. 执行 consumer 级预校验
 3. 构建 `FeishuSheetsClient`
 4. 构建 target loader
@@ -196,6 +255,13 @@ CLI 本身保持很薄，只做：
 3. 组装 `PublishTargetContext`
 4. 交给现有 `write_publish_target(...)`
 
+当 `sheet_id` 与 `sheet_name` 同时存在时，解析优先级固定为：
+
+- `sheet_id` 作为目标主键
+- `sheet_name` 只作为辅助元数据与 manifest 回显
+
+只有在 `sheet_id` 缺失时，才允许按 `sheet_name` 回退解析。
+
 这一层必须坚持复用主线现有 primitives，而不是重新写一套“consumer 专属 planner/writer”。
 
 ## 9. 失败语义
@@ -213,21 +279,38 @@ consumer 需要把失败分成三类：
 
 这类失败在进入 `PublishStage` 之前就应终止，避免制造半成功运行。
 
+这类失败统一输出：
+
+- `status = "preflight_failed"`
+- `manifest = null`
+- `final_error.code = CONFIGURATION_ERROR`
+
+其中：
+
+- YAML 解析失败、字段校验失败、CLI 输入缺失都归入 `CONFIGURATION_ERROR`
+- `append_rows` 被第一版 consumer 拒绝时，也归入 `CONFIGURATION_ERROR`
+- 具体原因必须写入 `final_error.message`
+- 可诊断上下文必须写入 `final_error.details`
+
 ### 9.2 Stage blocked
 
 对第一版 consumer 来说，blocked 主要保留为 stage-level 语义出口，而不是常规路径。
 
 CLI 不应吞掉 blocked，而应原样通过：
 
-- 非 `0` 退出码
-- manifest 原样输出
+- `status = "blocked"`
+- `manifest` 原样输出
+- `final_error` 继承 stage final error
+- 退出码为 `1`
 
 ### 9.3 Stage failed
 
 写入失败、鉴权失败、目标缺失等 runtime 失败同样以：
 
-- 非 `0` 退出码
-- manifest JSON
+- `status = "failed"`
+- `manifest` 原样输出
+- `final_error` 继承 stage final error
+- 退出码为 `1`
 
 暴露给调用方。
 
@@ -242,6 +325,7 @@ CLI 不应吞掉 blocked，而应原样通过：
 - YAML 解析成功
 - 非 mapping payload 报错
 - 缺失字段报错
+- 顶层 `mappings` 形状正确映射到现有 `PublishMappingSpec`
 
 ### 10.2 service tests
 
@@ -249,16 +333,17 @@ CLI 不应吞掉 blocked，而应原样通过：
 
 - `append_rows` 出现时整次失败
 - `replace_sheet` / `replace_range` 能正确 wiring 到 `PublishStage`
-- `completed` / `blocked` / `failed` 语义稳定
-- manifest 与退出状态一致
+- `preflight_failed` / `completed` / `blocked` / `failed` 语义稳定
+- envelope 与退出状态一致
+- `sheet_id` / `sheet_name` 同时存在时遵守既定解析优先级
 
 ### 10.3 CLI tests
 
 验证：
 
 - 参数解析
-- stdout JSON 输出
-- 非零退出码语义
+- stdout 输出统一 envelope JSON
+- `0/1/2` 退出码语义
 - 稳定错误消息
 
 ### 10.4 既有 publish tests 持续保留
