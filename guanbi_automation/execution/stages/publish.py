@@ -9,6 +9,7 @@ from typing import Any, Callable
 from guanbi_automation.domain.publish_contract import PublishDataset, PublishMappingSpec
 from guanbi_automation.domain.runtime_contract import RuntimeErrorInfo
 from guanbi_automation.execution.manifest_builder import build_publish_manifest
+from guanbi_automation.infrastructure.feishu.client import PublishClientError
 from guanbi_automation.infrastructure.feishu.target_planner import ResolvedPublishTarget
 
 
@@ -105,11 +106,23 @@ class PublishStage:
                 empty_source_policy=self._empty_source_policy,
             )
 
-        target_context = self._target_loader(
-            workbook_path=workbook_path,
-            mapping=mapping,
-            dataset=dataset,
-        )
+        try:
+            target_context = self._target_loader(
+                workbook_path=workbook_path,
+                mapping=mapping,
+                dataset=dataset,
+            )
+        except PublishClientError as exc:
+            return _build_mapping_manifest(
+                mapping=mapping,
+                dataset=dataset,
+                target_context=None,
+                write_result=None,
+                status="failed",
+                final_error=exc.error,
+                empty_source=empty_source,
+                empty_source_policy=self._empty_source_policy if empty_source else None,
+            )
         if target_context.append_rerun_error is not None:
             return _build_mapping_manifest(
                 mapping=mapping,
