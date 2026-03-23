@@ -32,6 +32,8 @@ class PublishWriteResult:
     successful_chunk_count: int
     written_row_count: int
     partial_write: bool
+    segment_write_mode: str = "single_range"
+    write_segments: list[dict[str, Any]] | None = None
     final_error: RuntimeErrorInfo | None = None
     events: list[dict[str, Any]] | None = None
 
@@ -151,6 +153,7 @@ def _build_mapping_manifest(
     empty_source_policy: str | None,
 ) -> dict[str, Any]:
     resolved_target = target_context.resolved_target if target_context is not None else None
+    write_segments = list(write_result.write_segments) if write_result and write_result.write_segments else []
     manifest: dict[str, Any] = {
         "mapping_id": mapping.mapping_id,
         "source": {
@@ -180,9 +183,14 @@ def _build_mapping_manifest(
             ),
             "written_row_count": write_result.written_row_count if write_result is not None else 0,
             "partial_write": write_result.partial_write if write_result is not None else False,
+            "segment_count": len(write_segments),
+            "segment_write_mode": (
+                write_result.segment_write_mode if write_result is not None else None
+            ),
         },
         "status": status,
         "final_error": final_error.model_dump(mode="json") if final_error is not None else None,
+        "write_segments": write_segments,
         "events": list(write_result.events) if write_result and write_result.events else [],
         "empty_source": empty_source,
         "empty_source_policy": empty_source_policy,

@@ -42,6 +42,52 @@ def test_publish_stage_records_mapping_level_results(tmp_path: Path):
     assert result.manifest["mappings"][0]["write_summary"]["written_row_count"] == 2
 
 
+def test_publish_stage_manifest_records_segment_summary(tmp_path: Path):
+    workbook_path = tmp_path / "result.xlsx"
+    workbook_path.write_bytes(b"placeholder")
+
+    stage = PublishStage(
+        source_reader=lambda *_args, **_kwargs: _dataset(
+            rows=[[f"col-{index}" for index in range(127)]]
+        ),
+        target_loader=lambda *_args, **_kwargs: _target_context(),
+        target_writer=lambda *_args, **_kwargs: _write_result(
+            chunk_count=1,
+            written_row_count=1,
+            segment_write_mode="batch_ranges",
+            write_segments=[
+                {
+                    "range_string": "子表1!B3:CW3",
+                    "row_count": 1,
+                    "column_count": 100,
+                    "row_offset": 0,
+                    "column_offset": 0,
+                },
+                {
+                    "range_string": "子表1!CX3:EU3",
+                    "row_count": 1,
+                    "column_count": 27,
+                    "row_offset": 0,
+                    "column_offset": 100,
+                },
+            ],
+        ),
+    )
+
+    result = stage.run(
+        PlannedPublishRun(
+            batch_id="batch-001",
+            job_id="job-001",
+            workbook_path=workbook_path,
+            mappings=[_mapping_spec()],
+        )
+    )
+
+    assert result.manifest["mappings"][0]["write_summary"]["segment_count"] == 2
+    assert result.manifest["mappings"][0]["write_summary"]["segment_write_mode"] == "batch_ranges"
+    assert result.manifest["mappings"][0]["write_segments"][1]["column_offset"] == 100
+
+
 def test_publish_stage_skips_empty_source_when_policy_is_skip(tmp_path: Path):
     workbook_path = tmp_path / "result.xlsx"
     workbook_path.write_bytes(b"placeholder")
@@ -209,6 +255,8 @@ def _write_result(
     written_row_count: int,
     successful_chunk_count: int | None = None,
     partial_write: bool = False,
+    segment_write_mode: str = "single_range",
+    write_segments: list[dict[str, object]] | None = None,
     final_error: RuntimeErrorInfo | None = None,
 ) -> PublishWriteResult:
     return PublishWriteResult(
@@ -218,6 +266,8 @@ def _write_result(
         ),
         written_row_count=written_row_count,
         partial_write=partial_write,
+        segment_write_mode=segment_write_mode,
+        write_segments=write_segments,
         final_error=final_error,
     )
 
