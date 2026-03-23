@@ -17,7 +17,10 @@ class PublishRuntimeSpec(BaseModel):
 
 
 def load_publish_runtime_spec(spec_path: Path | str) -> PublishRuntimeSpec:
-    payload = yaml.safe_load(Path(spec_path).read_text(encoding="utf-8"))
+    try:
+        payload = yaml.safe_load(Path(spec_path).read_text(encoding="utf-8"))
+    except yaml.YAMLError as exc:
+        raise ValueError("publish runtime spec must be valid YAML") from exc
     if not isinstance(payload, dict):
         raise ValueError("publish runtime spec must be a mapping")
     return PublishRuntimeSpec.model_validate(payload)

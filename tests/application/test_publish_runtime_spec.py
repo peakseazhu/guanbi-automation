@@ -46,6 +46,14 @@ def test_load_publish_runtime_spec_rejects_non_mapping_payload(tmp_path: Path):
         load_publish_runtime_spec(spec_path)
 
 
+def test_load_publish_runtime_spec_normalizes_malformed_yaml(tmp_path: Path):
+    spec_path = tmp_path / "publish.yaml"
+    spec_path.write_text("mappings:\n  - mapping_id: broken: [\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="publish runtime spec must be valid YAML"):
+        load_publish_runtime_spec(spec_path)
+
+
 @pytest.mark.parametrize(
     "payload",
     [
