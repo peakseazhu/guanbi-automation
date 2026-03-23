@@ -3,6 +3,7 @@ from pathlib import Path
 from openpyxl import Workbook
 
 from guanbi_automation.domain.publish_contract import PublishSourceSpec
+from guanbi_automation.infrastructure.excel import publish_source_reader
 from guanbi_automation.infrastructure.excel.publish_source_reader import read_publish_source
 
 
@@ -71,3 +72,42 @@ def test_read_block_source_respects_declared_bounds(tmp_path: Path):
     assert dataset.row_count == 2
     assert dataset.column_count == 2
     assert dataset.source_range == "计算表2!B2:C3"
+
+
+def test_read_publish_source_opens_large_workbook_in_read_only_mode(
+    tmp_path: Path,
+    monkeypatch,
+):
+    workbook_path = tmp_path / "large-result.xlsx"
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "全国执行"
+    sheet["A1"] = "日期"
+    sheet["B1"] = "门店数"
+    sheet["A2"] = "2026-03-22"
+    sheet["B2"] = 3
+    workbook.save(workbook_path)
+
+    observed: dict[str, object] = {}
+    original_load_workbook = publish_source_reader.load_workbook
+
+    def tracking_load_workbook(*args, **kwargs):
+        observed["data_only"] = kwargs.get("data_only")
+        observed["read_only"] = kwargs.get("read_only")
+        return original_load_workbook(*args, **kwargs)
+
+    monkeypatch.setattr(publish_source_reader, "load_workbook", tracking_load_workbook)
+
+    source = PublishSourceSpec(
+        source_id="large-sheet",
+        sheet_name="全国执行",
+        read_mode="sheet",
+        start_row=1,
+        start_col=1,
+        header_mode="include",
+    )
+
+    dataset = read_publish_source(workbook_path, source)
+
+    assert observed == {"data_only": True, "read_only": True}
+    assert dataset.rows == [["日期", "门店数"], ["2026-03-22", 3]]
