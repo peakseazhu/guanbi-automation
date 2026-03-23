@@ -82,6 +82,79 @@ def test_write_publish_target_uses_single_range_for_small_dataset():
     ]
 
 
+def test_write_publish_target_honors_explicit_target_rectangle_and_pads_missing_cells():
+    requests: list[tuple[str, str, dict[str, object]]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(
+            (
+                request.method,
+                request.url.path,
+                json.loads(request.content.decode("utf-8")),
+            )
+        )
+        return httpx.Response(
+            200,
+            json={"code": 0, "msg": "ok", "data": {"updatedRange": "ySyhcD!B3:E5"}},
+        )
+
+    result = write_publish_target(
+        mapping=_mapping_spec(),
+        dataset=PublishDataset(
+            rows=[["x", 1], ["y", 2]],
+            row_count=2,
+            column_count=2,
+            source_range="计算表1!A2:B3",
+        ),
+        target_context=PublishTargetContext(
+            resolved_target=ResolvedPublishTarget(
+                sheet_id="ySyhcD",
+                sheet_title="子表1",
+                range_string="子表1!B3:E5",
+                start_row=3,
+                start_col=2,
+                end_row=5,
+                end_col=5,
+            )
+        ),
+        client=FeishuSheetsClient(transport=httpx.MockTransport(handler)),
+        tenant_access_token="tenant-token",
+        chunk_row_limit=500,
+        chunk_column_limit=100,
+    )
+
+    assert requests == [
+        (
+            "PUT",
+            "/open-apis/sheets/v2/spreadsheets/sheet-token/values",
+            {
+                "valueRange": {
+                    "range": "ySyhcD!B3:E5",
+                    "values": [
+                        ["x", 1, "", ""],
+                        ["y", 2, "", ""],
+                        ["", "", "", ""],
+                    ],
+                }
+            },
+        )
+    ]
+    assert result.chunk_count == 1
+    assert result.successful_chunk_count == 1
+    assert result.written_row_count == 2
+    assert result.partial_write is False
+    assert result.segment_write_mode == "single_range"
+    assert result.write_segments == [
+        {
+            "range_string": "ySyhcD!B3:E5",
+            "row_count": 3,
+            "column_count": 4,
+            "row_offset": 0,
+            "column_offset": 0,
+        }
+    ]
+
+
 def test_write_publish_target_uses_batch_ranges_for_wide_dataset():
     requests: list[tuple[str, str, dict[str, object]]] = []
 
@@ -106,7 +179,17 @@ def test_write_publish_target_uses_batch_ranges_for_wide_dataset():
             column_count=127,
             source_range="计算表1!A2:DW2",
         ),
-        target_context=_target_context(end_col=128),
+        target_context=PublishTargetContext(
+            resolved_target=ResolvedPublishTarget(
+                sheet_id="ySyhcD",
+                sheet_title="子表1",
+                range_string="子表1!B3:DX3",
+                start_row=3,
+                start_col=2,
+                end_row=3,
+                end_col=128,
+            )
+        ),
         client=FeishuSheetsClient(transport=httpx.MockTransport(handler)),
         tenant_access_token="tenant-token",
         chunk_row_limit=500,
