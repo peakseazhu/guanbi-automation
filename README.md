@@ -1,6 +1,6 @@
 # Guanbi Automation
 
-从 0 构建的观远 BI 自动化套件当前已完成 runtime contract、extract runtime policy、workbook foundation、publish foundation。基于首个有效 publish live verification evidence archive，`main` 已吸收 `publish hardening` 所需的 foundation primitives，包括 `publish_source_reader` 的 streaming-safe 读取修复、concrete Feishu publish writer、row/column-aware segment planning、`values_batch_update` 批量写入路径，以及 segment-aware publish manifest surface；真实资源 readback/comparison、live verification runtime，以及主线尚未具备的 publish runtime consumer 继续在独立验证线推进。
+从 0 构建的观远 BI 自动化套件当前已完成 runtime contract、extract runtime policy、workbook foundation、publish foundation，并在 `main` 接通了首个非测试 publish runtime consumer。基于首个有效 publish live verification evidence archive，`main` 已吸收 `publish hardening` 所需的 foundation primitives，包括 `publish_source_reader` 的 streaming-safe 读取修复、concrete Feishu publish writer、row/column-aware segment planning、`values_batch_update` 批量写入路径，以及 segment-aware publish manifest surface；主线 consumer 当前只接通 `replace_sheet` / `replace_range`，真实资源 readback/comparison、live verification runtime，以及 `append_rows` consumer runtime path 继续保留在独立验证线或后续主线切片中推进。
 
 ## Recovery Entry
 
@@ -21,11 +21,13 @@
 - `.worktrees/publish-stage-task1` 是 publish live verification 验证线，不替代主线权威文档
 - 最新主线状态归档已前进到：
   - `docs/archive/sessions/2026-03-23-publish-mainline-reconciliation.md`
+  - `docs/archive/sessions/2026-03-23-mainline-publish-runtime-consumer-implementation.md`
 - 验证线同时保留两类运行目录：
   - `runs/live_verification/publish/20260322T054012Z` 仍为空目录，只算历史运行足迹
   - `runs/live_verification/publish/20260323T022511Z` 是首个有效 evidence archive，`comparison.json` 已确认 `matches = true`
 - 当前最重要的新边界是：
-  - `58 x 127` 真实宽表已经通过验证线 evidence 证明需要 `chunk_column_limit=100`、单 segment `write_values` 与多 segment `values_batch_update`；对应 foundation primitives 已进入 `main`，但主线尚未具备非测试 publish runtime consumer
+  - `58 x 127` 真实宽表已经通过验证线 evidence 证明需要 `chunk_column_limit=100`、单 segment `write_values` 与多 segment `values_batch_update`；对应 foundation primitives 已进入 `main`，且主线现已具备首个非测试 publish runtime consumer
+  - 当前 mainline consumer 只接通 `replace_sheet` / `replace_range`，`append_rows` 仍保留在 contract / planner / stage safety，但未接入 consumer runtime
   - `.worktrees/publish-stage-task1` 仍只保留 live verification spec / service / entrypoint / local spec / evidence / readback comparison，不替代主线 runtime
 
 ## Runtime Contract Baseline
@@ -81,7 +83,12 @@
 - mapping manifest 会记录 `segment_count`、`segment_write_mode` 与 `write_segments`
 - `append_rows` 重跑默认阻断，不视为天然幂等
 - publish gate 会在进入阶段前校验 workbook、mapping 数量与 target readiness
-- 当前 `main` 只有 publish foundation/primitives；非测试 `PublishStage` runtime wiring 仍未进入主线
+- 当前 `main` 已具备首个非测试 publish runtime consumer：
+  - 输入：YAML publish spec + 显式 `tenant_access_token`
+  - CLI token 来源：`--tenant-access-token` 或 `FEISHU_TENANT_ACCESS_TOKEN`
+  - 接通：`replace_sheet` / `replace_range`
+  - 输出：稳定 JSON runtime envelope 与 `0/1/2` 退出码
+  - 暂未接通：`append_rows` consumer runtime、readback/comparison、token fetch
 
 ## Current Verification
 
@@ -97,3 +104,4 @@
 - extract stage segmented runtime evidence
 - workbook contract, locator, loader, writer, ingest, transform foundation
 - publish contract, source reader, row/column-aware target planner, batch-capable client adapter, publish writer, and publish stage foundation
+- publish runtime spec loader、runtime service 与 thin CLI consumer

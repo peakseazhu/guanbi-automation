@@ -249,6 +249,23 @@
   - 修复 `write_publish_target(...)`，使其在 dataset 非空时按 resolved target 的完整矩形规划写入，并用空串补齐显式边界内剩余单元格。
   - 下一次只有在主线出现明确的非测试 publish runtime consumer，并完成 fresh verification 后，才允许重新声明 runtime-connected hardening 已进入 `main`。
 - Consequences：
-  - 主线文档与恢复入口重新对齐真实状态，不再把 dormant primitives 误写成 runtime 能力。
-  - `publish_writer` 的显式边界覆盖语义被补齐，为后续真正接线保留正确基础。
-  - 验证线继续承担 live verification、readback/comparison 与后续可回灌 consumer 的收敛工作。
+- 主线文档与恢复入口重新对齐真实状态，不再把 dormant primitives 误写成 runtime 能力。
+- `publish_writer` 的显式边界覆盖语义被补齐，为后续真正接线保留正确基础。
+- 验证线继续承担 live verification、readback/comparison 与后续可回灌 consumer 的收敛工作。
+
+## ADR-2026-03-24-22：首个主线 publish runtime consumer 只接通 replace_sheet / replace_range
+
+- Status：Accepted
+- Context：在 ADR-21 之后，`main` 已具备 publish foundation 与 hardening primitives，但仍缺少非测试 publish runtime consumer；与此同时，验证线已经证明真实样本写入/分段规划路径成立，却不适合把 live verification runtime 整体搬回主线。主线下一步需要的是一个最小、稳定、可测试、可直接运行的 publish consumer，而不是继续把验证脚手架混入 `main`。
+- Decision：
+  - 在 `main` 增加首个非测试 publish runtime consumer，形态固定为 thin CLI + application service。
+  - consumer 通过最小 YAML publish spec 读取 mappings，显式接收 `tenant_access_token`，并通过 `PipelineEngine.run_publish(...)` 接通既有 `PublishStage`。
+  - 第一版只接通 `replace_sheet` / `replace_range`；`append_rows` 继续保留在 contract / planner / stage safety 中，但在 consumer 预校验阶段显式拒绝。
+  - CLI 对外固定输出稳定 JSON runtime envelope，并使用 `0/1/2` 退出码表达 `completed` / `failed|blocked` / `preflight_failed`；未知 argv 也必须回到同一 JSON 契约，而不是直接输出 argparse usage text。
+  - CLI 保留 `--tenant-access-token`，同时增加 `FEISHU_TENANT_ACCESS_TOKEN` 环境变量回退，避免 bearer token 只能通过进程参数传入。
+  - runtime service 与 stage 必须自行归一化 source-reader、target-loader、planner 与 transport 异常，不能把异常继续泄漏给 CLI。
+- Consequences：
+  - `main` 的 publish 状态从“只有 foundation/primitives”前进到“已有首个 runtime-connected consumer”，但能力范围仍明确受限于 `replace_sheet` / `replace_range`。
+  - `append_rows`、readback/comparison、token fetch 与 live verification runtime 继续保留在验证线或后续主线切片中，不会被误写成已丢失。
+  - 主线调用方现在可以直接以稳定 CLI envelope 消费 publish 结果，而不需要自己包裹异常边界。
+  - operator 可以优先通过环境变量注入 token，同时保留已有显式参数入口。
